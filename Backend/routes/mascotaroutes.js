@@ -4,12 +4,14 @@ const {
   getMascotas,
   getMascotaPorId,
   getMascotasPorCliente,
+  buscarMascota,
   crearMascota,
   actualizarMascota,
   eliminarMascota,
 } = require('../controller/mascotaController');
 
 router.get('/', getMascotas);
+router.get('/buscar', buscarMascota);
 router.get('/cliente/:idCliente', getMascotasPorCliente);
 router.get('/:id', getMascotaPorId);
 router.post('/', crearMascota);
