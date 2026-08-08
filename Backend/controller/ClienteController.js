@@ -4,7 +4,7 @@ const { sql, getPool } = require('../config/db');
 async function getClientes(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request().query('SELECT * FROM Cliente');
+    const result = await pool.request().execute('sp_ConsultarClientes');
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -38,17 +38,14 @@ async function crearCliente(req, res) {
 
   try {
     const pool = await getPool();
-    const result = await pool.request()
-      .input('NombreCompleto', sql.VarChar(100), NombreCompleto)
+    await pool.request()
+      .input('Nombre', sql.VarChar(100), NombreCompleto)
       .input('Cedula', sql.VarChar(10), Cedula)
       .input('Telefono', sql.VarChar(8), Telefono)
-      .input('CorreoElectronico', sql.VarChar(100), CorreoElectronico)
-      .query(`
-        INSERT INTO Cliente (NombreCompleto, Cedula, Telefono, CorreoElectronico)
-        OUTPUT INSERTED.*
-        VALUES (@NombreCompleto, @Cedula, @Telefono, @CorreoElectronico)
-      `);
-    res.status(201).json(result.recordset[0]);
+      .input('Correo', sql.VarChar(100), CorreoElectronico)
+      .execute('sp_CrearCliente');
+
+    res.status(201).json({ message: 'Cliente creado correctamente' });
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ message: 'Ya existe un cliente con esa cédula' });
@@ -63,27 +60,19 @@ async function actualizarCliente(req, res) {
 
   try {
     const pool = await getPool();
-    const result = await pool.request()
+    await pool.request()
       .input('IdCliente', sql.Int, req.params.id)
-      .input('NombreCompleto', sql.VarChar(100), NombreCompleto)
+      .input('Nombre', sql.VarChar(100), NombreCompleto)
       .input('Cedula', sql.VarChar(10), Cedula)
       .input('Telefono', sql.VarChar(8), Telefono)
-      .input('CorreoElectronico', sql.VarChar(100), CorreoElectronico)
-      .query(`
-        UPDATE Cliente
-        SET NombreCompleto = @NombreCompleto,
-            Cedula = @Cedula,
-            Telefono = @Telefono,
-            CorreoElectronico = @CorreoElectronico
-        OUTPUT INSERTED.*
-        WHERE IdCliente = @IdCliente
-      `);
+      .input('Correo', sql.VarChar(100), CorreoElectronico)
+      .execute('sp_ActualizarCliente');
 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ message: 'Cliente no encontrado' });
-    }
-    res.json(result.recordset[0]);
+    res.json({ message: 'Cliente actualizado correctamente' });
   } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 }
@@ -92,23 +81,48 @@ async function actualizarCliente(req, res) {
 async function eliminarCliente(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request()
+    await pool.request()
       .input('IdCliente', sql.Int, req.params.id)
-      .query('DELETE FROM Cliente WHERE IdCliente = @IdCliente');
+      .execute('sp_EliminarCliente');
 
-    if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ message: 'Cliente no encontrado' });
-    }
     res.json({ message: 'Cliente eliminado' });
   } catch (err) {
-    // Si tiene mascotas o citas asociadas, la FK va a bloquear el DELETE
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
     res.status(500).json({ message: 'No se pudo eliminar (puede tener registros asociados)', detalle: err.message });
+  }
+}
+
+// GET /api/clientes/buscar?nombre=Maria  (Consulta "Buscar dueño")
+async function buscarCliente(req, res) {
+  const { nombre } = req.query;
+
+  if (!nombre) {
+    return res.status(400).json({ message: 'Debes enviar ?nombre=texto a buscar' });
+  }
+
+  try {
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('Nombre', sql.VarChar(120), `%${nombre}%`)
+      .query(`
+        SELECT C.NombreCompleto AS NombreDueno, C.Cedula, C.Telefono, C.CorreoElectronico,
+               M.IdMascota, M.Nombre AS NombreMascota, M.Especie, M.Raza, M.EdadAnimal
+        FROM Cliente C
+        LEFT JOIN Mascota M ON C.IdCliente = M.IdCliente
+        WHERE C.NombreCompleto LIKE @Nombre
+      `);
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 }
 
 module.exports = {
   getClientes,
   getClientePorId,
+  buscarCliente,
   crearCliente,
   actualizarCliente,
   eliminarCliente,

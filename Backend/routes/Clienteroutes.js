@@ -3,12 +3,14 @@ const router = express.Router();
 const {
   getClientes,
   getClientePorId,
+  buscarCliente,
   crearCliente,
   actualizarCliente,
   eliminarCliente,
 } = require('../controller/clienteController');
 
 router.get('/', getClientes);
+router.get('/buscar', buscarCliente);
 router.get('/:id', getClientePorId);
 router.post('/', crearCliente);
 router.put('/:id', actualizarCliente);

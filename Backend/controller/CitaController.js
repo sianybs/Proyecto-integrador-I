@@ -4,13 +4,7 @@ const { sql, getPool } = require('../config/db');
 async function getCitas(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT ci.*, m.Nombre AS NombreMascota, c.NombreCompleto AS NombreDueno
-      FROM Cita ci
-      INNER JOIN Mascota m ON ci.IdMascota = m.IdMascota
-      INNER JOIN Cliente c ON m.IdCliente = c.IdCliente
-      ORDER BY ci.Fecha, ci.Hora
-    `);
+    const result = await pool.request().execute('sp_ConsultarCitas');
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -70,27 +64,18 @@ async function crearCita(req, res) {
 
   try {
     const pool = await getPool();
-
-    const mascota = await pool.request()
-      .input('IdMascota', sql.Int, IdMascota)
-      .query('SELECT IdMascota FROM Mascota WHERE IdMascota = @IdMascota');
-
-    if (mascota.recordset.length === 0) {
-      return res.status(400).json({ message: 'La mascota (IdMascota) no existe' });
-    }
-
-    const result = await pool.request()
+    await pool.request()
       .input('Fecha', sql.Date, Fecha)
       .input('Hora', sql.VarChar(8), Hora)
       .input('Motivo', sql.VarChar(125), Motivo)
       .input('IdMascota', sql.Int, IdMascota)
-      .query(`
-        INSERT INTO Cita (Fecha, Hora, Motivo, Estado, IdMascota)
-        OUTPUT INSERTED.*
-        VALUES (@Fecha, @Hora, @Motivo, 'Pendiente', @IdMascota)
-      `);
-    res.status(201).json(result.recordset[0]);
+      .execute('sp_CrearCita');
+
+    res.status(201).json({ message: 'Cita agendada correctamente' });
   } catch (err) {
+    if (err.message.includes('no existe') || err.message.includes('pasadas')) {
+      return res.status(400).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 }
@@ -101,29 +86,20 @@ async function actualizarCita(req, res) {
 
   try {
     const pool = await getPool();
-    const result = await pool.request()
+    await pool.request()
       .input('IdCita', sql.Int, req.params.id)
       .input('Fecha', sql.Date, Fecha)
       .input('Hora', sql.VarChar(8), Hora)
       .input('Motivo', sql.VarChar(125), Motivo)
       .input('Estado', sql.VarChar(15), Estado)
       .input('IdMascota', sql.Int, IdMascota)
-      .query(`
-        UPDATE Cita
-        SET Fecha = @Fecha,
-            Hora = @Hora,
-            Motivo = @Motivo,
-            Estado = @Estado,
-            IdMascota = @IdMascota
-        OUTPUT INSERTED.*
-        WHERE IdCita = @IdCita
-      `);
+      .execute('sp_ActualizarCita');
 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ message: 'Cita no encontrada' });
-    }
-    res.json(result.recordset[0]);
+    res.json({ message: 'Cita actualizada correctamente' });
   } catch (err) {
+    if (err.message.includes('no existe') || err.message.includes('válido') || err.message.includes('pasadas')) {
+      return res.status(400).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 }
@@ -161,15 +137,15 @@ async function cambiarEstadoCita(req, res) {
 async function eliminarCita(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request()
+    await pool.request()
       .input('IdCita', sql.Int, req.params.id)
-      .query('DELETE FROM Cita WHERE IdCita = @IdCita');
+      .execute('sp_EliminarCita');
 
-    if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ message: 'Cita no encontrada' });
-    }
     res.json({ message: 'Cita eliminada' });
   } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
     res.status(500).json({ message: 'No se pudo eliminar (puede tener una atención veterinaria asociada)', detalle: err.message });
   }
 }
