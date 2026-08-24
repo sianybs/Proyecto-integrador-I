@@ -134,6 +134,40 @@ async function getReporteAdopciones(req, res) {
   }
 }
 
+// PATCH /api/adopciones/:id/cancelar  (el cliente cancela mientras está Pendiente)
+async function cancelarSolicitud(req, res) {
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input('IdSolicitud', sql.Int, req.params.id)
+      .execute('sp_CancelarSolicitudAdopcion');
+
+    res.json({ message: 'Solicitud cancelada' });
+  } catch (err) {
+    if (err.message.includes('no existe') || err.message.includes('pendiente')) {
+      return res.status(400).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
+// PATCH /api/adopciones/:id/devolver  (el cliente devuelve una mascota ya adoptada)
+async function devolverAdopcion(req, res) {
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input('IdSolicitud', sql.Int, req.params.id)
+      .execute('sp_DevolverAdopcion');
+
+    res.json({ message: 'Mascota devuelta. Ya está disponible para adopción nuevamente.' });
+  } catch (err) {
+    if (err.message.includes('no existe') || err.message.includes('adoptada')) {
+      return res.status(400).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
 module.exports = {
   getSolicitudes,
   getSolicitudesPendientes,
@@ -141,5 +175,7 @@ module.exports = {
   crearSolicitud,
   aprobarSolicitud,
   rechazarSolicitud,
+  cancelarSolicitud,
+  devolverAdopcion,
   eliminarSolicitud,
 };

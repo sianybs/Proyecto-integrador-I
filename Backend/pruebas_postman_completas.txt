@@ -1,0 +1,470 @@
+====================================================================
+PRUEBAS FUNCIONALES - PROYECTO VETERINARIA (Postman)
+====================================================================
+Base URL: http://localhost:4000
+
+NOTA GENERAL: los IDs entre <> (ej. <IdCliente>) los tenes que
+reemplazar por un ID real que te devuelva la base o una respuesta
+anterior. El orden de abajo esta pensado para que primero crees los
+datos "base" (Cliente, Mascota, Animal, Rol) y despues los que
+dependen de ellos (Cita, Adopcion, Postulacion, etc.)
+
+Para cada request, anota: status code recibido, y si el mensaje
+tiene sentido con lo que pediste. Cualquier 500 (error de servidor)
+o comportamiento raro, anotalo para revisarlo.
+
+
+====================================================================
+0) SALUD / DEBUG
+====================================================================
+GET /api/health
+-> Esperado: 200, { status: "ok", db: "conectado" }
+
+GET /api/debug-conexion
+-> Esperado: 200, { Servidor, BaseDeDatos, SPID }
+
+
+====================================================================
+1) AUTH
+====================================================================
+POST /api/auth/login
+Body:
+{
+  "correo": "algun_correo_valido@ejemplo.com",
+  "contrasena": "la_contrasena_real"
+}
+
+Credenciales para admin
+correo:admin@vetacre.com
+contra:Prueba123!
+
+Credenciales para veterinario
+correo: veterinario@vetcare.com
+contra: Prueba123!
+
+Credenciales para recepcionista
+correo:recepcionista@vetcare.com
+contra: Prueba123!
+
+Credenciales para encargado de refugio
+correo:refugio@vetcare.com
+contra:Prueba123!
+
+-> Esperado: 200, { token, usuario: { id, nombre, correo, rol } }
+   (probar con un Administrador, un Empleado y un Cliente si tenes
+   credenciales de los 3, para confirmar que detecta el rol bien)
+
+POST /api/auth/login (credenciales incorrectas)
+Body:
+{
+  "correo": "no_existe@ejemplo.com",
+  "contrasena": "cualquiera"
+}
+-> Esperado: 401, "Correo o contraseña incorrectos"
+
+POST /api/auth/login (faltan campos)
+Body: {}
+-> Esperado: 400, "Correo y contraseña son obligatorios"
+
+
+====================================================================
+2) CLIENTES (dueños)
+====================================================================
+GET /api/clientes
+-> Esperado: 200, lista de clientes
+
+GET /api/clientes/buscar?nombre=ana
+-> Esperado: 200, lista filtrada por nombre (parcial, sin importar mayúsculas)
+
+POST /api/clientes
+Body:
+{
+  "NombreCompleto": "Cliente de Prueba",
+  "Cedula": "1234567890",
+  "Telefono": "88889999",
+  "CorreoElectronico": "clienteprueba@correo.com"
+}
+-> Esperado: 201, "Cliente creado correctamente"
+-> GUARDATE el IdCliente que te devuelva GET /api/clientes para usarlo abajo
+
+POST /api/clientes (cedula duplicada, repetir el body de arriba)
+-> Esperado: 409 o error de UNIQUE, no debería dejar duplicar cedula
+
+GET /api/clientes/<IdCliente>
+-> Esperado: 200, datos del cliente creado
+
+aca para ver el id de cliente debes listarlos para saber
+
+PUT /api/clientes/<IdCliente>
+Body:
+{
+  "NombreCompleto": "Cliente de Prueba Editado",
+  "Cedula": "1234567890",
+  "Telefono": "88880000",
+  "CorreoElectronico": "clienteprueba@correo.com"
+}
+-> Esperado: 200, "Cliente actualizado correctamente"
+
+GET /api/clientes/99999  (id que no existe)
+-> Esperado: 404
+
+DELETE /api/clientes/<IdCliente>  (probar al final, cuando ya no lo necesites para otras pruebas)
+-> Esperado: 200, "Cliente eliminado" (o 409 si tiene mascotas/citas asociadas)
+
+
+====================================================================
+3) MASCOTAS
+====================================================================
+GET /api/mascotas
+-> Esperado: 200, lista de mascotas
+
+GET /api/mascotas/buscar?nombre=firulais
+-> Esperado: 200, lista filtrada
+
+GET /api/mascotas/cliente/<IdCliente>
+-> Esperado: 200, mascotas de ese cliente puntual
+
+POST /api/mascotas
+Body:
+{
+  "Nombre": "Firulais",
+  "Especie": "Perro",
+  "Raza": "Labrador",
+  "EdadAnimal": "3 años",
+  "IdCliente": <IdCliente>
+}
+-> Esperado: 201
+-> GUARDATE el IdMascota que devuelva GET /api/mascotas
+
+POST /api/mascotas (IdCliente que no existe, ej 99999)
+-> Esperado: 400, "El cliente no existe" (o similar)
+
+GET /api/mascotas/<IdMascota>
+-> Esperado: 200
+
+PUT /api/mascotas/<IdMascota>
+Body:
+{
+  "Nombre": "Firulais Editado",
+  "Especie": "Perro",
+  "Raza": "Labrador",
+  "EdadAnimal": "4 años",
+  "IdCliente": <IdCliente>
+}
+-> Esperado: 200
+
+DELETE /api/mascotas/<IdMascota>  (probar al final)
+-> Esperado: 200 (o 409 si tiene citas asociadas)
+
+
+====================================================================
+4) CITAS
+====================================================================
+GET /api/citas
+-> Esperado: 200, lista con nombre de mascota y dueño
+
+GET /api/citas/fecha/2026-08-25  (formato YYYY-MM-DD)
+-> Esperado: 200, citas de ese día
+
+POST /api/citas
+Body:
+{
+  "Fecha": "2026-09-15",
+  "Hora": "10:00",
+  "Motivo": "Consulta general",
+  "IdMascota": <IdMascota>
+}
+-> Esperado: 201, "Cita agendada correctamente"
+-> Debería llegarte un correo al dueño de la mascota
+-> GUARDATE el IdCita
+
+POST /api/citas (mismo Fecha+Hora que la de arriba, repetir el body)
+-> Esperado: DEBE RECHAZAR (esto es justo lo que veníamos probando -
+   avisame si te deja crear la segunda, es el bug que seguimos
+   investigando)
+
+POST /api/citas (Hora fuera de rango, ej "20:00")
+-> Esperado: 400, "Las citas solo se pueden agendar entre las 8:00 a.m. y las 4:00 p.m."
+
+POST /api/citas (IdMascota que no existe)
+-> Esperado: 400, "La mascota no existe."
+
+GET /api/citas/<IdCita>
+-> Esperado: 200
+
+PUT /api/citas/<IdCita>
+Body:
+{
+  "Fecha": "2026-09-15",
+  "Hora": "11:00",
+  "Motivo": "Consulta general editada",
+  "Estado": "Pendiente",
+  "IdMascota": <IdMascota>
+}
+-> Esperado: 200
+
+
+PATCH /api/citas/<OTRO_IdCita>/cancelar   (usar una cita en estado Pendiente)
+-> Esperado: 200, "Cita cancelada correctamente"
+-> Debería llegar correo avisando la cancelación
+-> Probar también con una cita que falte MENOS de 1 hora para confirmar
+   que bloquea con el mensaje de "falta menos de 1 hora"
+
+DELETE /api/citas/<IdCita>  (probar al final, con una cita sin atención asociada)
+-> Esperado: 200 (o mensaje de que no se puede si tiene atención veterinaria asociada)
+
+
+====================================================================
+5) ATENCIONES VETERINARIAS
+====================================================================
+(Necesitas una Cita existente, idealmente en estado "Atendida")
+
+
+GET /api/atenciones/reporte
+-> Esperado: 200, reporte "Pacientes atendidos"
+
+GET /api/atenciones/mascota/<IdMascota>
+-> Esperado: 200, historial médico de esa mascota
+
+POST /api/atenciones
+Body:
+{
+  "Fecha": "2026-09-15",
+  "Diagnostico": "Chequeo general, todo normal",
+  "Tratamiento": "Ninguno",
+  "Observaciones": "Mascota saludable",
+  "IdCita": <IdCita>
+}
+-> Esperado: 201
+-> GUARDATE el IdAtencion
+
+GET /api/atenciones/<IdAtencion>
+-> Esperado: 200
+
+PUT /api/atenciones/<IdAtencion>
+Body:
+{
+  "Fecha": "2026-09-15",
+  "Diagnostico": "Chequeo general editado",
+  "Tratamiento": "Ninguno",
+  "Observaciones": "Editado",
+  "IdCita": <IdCita>
+}
+-> Esperado: 200 (este es el que arreglamos para que use el SP -
+   probar también con un IdAtencion que no exista, ej 99999, para
+   confirmar que da error "no existe" y no un 500 feo)
+
+DELETE /api/atenciones/<IdAtencion>  (al final)
+-> Esperado: 200
+
+
+====================================================================
+6) REFUGIO (animales)
+====================================================================
+GET /api/refugio
+-> Esperado: 200
+
+GET /api/refugio/disponibles
+-> Esperado: 200, solo animales con Disponible=true
+
+POST /api/refugio
+Body:
+{
+  "Nombre": "Michi",
+  "Especie": "Gato",
+  "Edad": "1 año",
+  "Historia": "Encontrado en la calle",
+  "Personalidad": "Cariñoso",
+  "HistorialSalud": "Vacunado y esterilizado",
+  "Disponible": true
+}
+-> Esperado: 201
+-> GUARDATE el IdAnimalRefugio
+
+GET /api/refugio/<IdAnimalRefugio>
+-> Esperado: 200
+
+PUT /api/refugio/<IdAnimalRefugio>
+Body:
+{
+  "Nombre": "Michi Editado",
+  "Especie": "Gato",
+  "Edad": "1 año",
+  "Historia": "Encontrado en la calle",
+  "Personalidad": "Cariñoso",
+  "HistorialSalud": "Vacunado y esterilizado",
+  "Disponible": true
+}
+-> Esperado: 200
+
+DELETE /api/refugio/<IdAnimalRefugio>  (probar al final, con uno sin adopciones asociadas)
+-> Esperado: 200
+
+
+====================================================================
+7) ADOPCIONES
+====================================================================
+(Necesitas un IdCliente y un IdAnimalRefugio con Disponible=true)
+
+POST /api/adopciones
+Body:
+{
+  "CondicionVivienda": "Casa con patio",
+  "TieneMascotas": false,
+  "MotivoAdopcion": "Quiero darle un hogar",
+  "IdCliente": <IdCliente>,
+  "IdAnimalRefugio": <IdAnimalRefugio>
+}
+-> Esperado: 201
+-> GUARDATE el IdSolicitud
+
+GET /api/adopciones
+-> Esperado: 200
+
+GET /api/adopciones/pendientes
+-> Esperado: 200, solo las que están en estado Pendiente
+
+GET /api/adopciones/reporte
+-> Esperado: 200, reporte "Adopciones realizadas"
+
+PATCH /api/adopciones/<IdSolicitud>/aprobar
+-> Esperado: 200, y el animal debería pasar a Disponible=false
+
+--- Para probar rechazar/cancelar/devolver, crea OTRAS solicitudes
+    nuevas por separado (una solicitud ya aprobada no debería poder
+    rechazarse/cancelarse de nuevo):
+
+PATCH /api/adopciones/<OTRA_IdSolicitud_2>/rechazar
+-> Esperado: 200
+
+PATCH /api/adopciones/<OTRA_IdSolicitud_3>/cancelar
+-> Esperado: 200 (solo debería funcionar si está en estado Pendiente)
+
+PATCH /api/adopciones/<IdSolicitud_aprobada>/devolver
+-> Esperado: 200, y el animal debería volver a Disponible=true
+
+DELETE /api/adopciones/<IdSolicitud>  (al final, con alguna de prueba)
+-> Esperado: 200
+
+
+====================================================================
+8) DONACIONES
+====================================================================
+
+POST /api/donaciones
+Body:
+{
+  "Fecha": "2026-09-15",
+  "Monto": 5000,
+  "MetodoPago": "Transferencia",
+  "DestinoDonacion": "Refugio",
+  "IdCliente": <IdCliente>
+}
+-> Esperado: 201
+-> GUARDATE el IdDonacion
+
+GET /api/donaciones
+-> Esperado: 200
+
+GET /api/donaciones/periodo?desde=2026-01-01&hasta=2026-12-31
+-> Esperado: 200, donaciones en ese rango
+-> Probar SIN los query params (solo /api/donaciones/periodo) para
+   confirmar que da 400 pidiendo desde/hasta
+
+GET /api/donaciones/reporte
+-> Esperado: 200, reporte "Donaciones recibidas"
+
+
+
+PATCH /api/donaciones/<IdDonacion>/aprobar
+-> Esperado: 200
+
+--- crear otra donación nueva para probar rechazar (no reutilizar la ya aprobada):
+PATCH /api/donaciones/<OTRA_IdDonacion>/rechazar
+-> Esperado: 200
+
+
+
+DELETE /api/donaciones/<IdDonacion>  (al final)
+-> Esperado: 200
+
+
+====================================================================
+9) POSTULACIONES Y EMPLEADOS
+====================================================================
+(Necesitas un IdRol válido - consultá tu tabla RolEmpleado en SSMS
+para saber los IDs, ej. 1=Administrador, 2=Veterinario, etc.)
+
+GET /api/postulaciones
+-> Esperado: 200
+
+GET /api/postulaciones/reporte
+-> Esperado: 200, reporte "Empleados postulados"
+
+POST /api/postulaciones
+Body:
+{
+  "NombreCompleto": "Postulante de Prueba",
+  "Cedula": "9876543210",
+  "FechaNacimiento": "1995-05-20",
+  "CorreoElectronico": "postulante@correo.com",
+  "Curriculum": "www.linkedin.com/in/postulante",
+  "MotivoPostulacion": "Quiero trabajar en la veterinaria",
+  "IdRol": <IdRol_valido>
+}
+-> Esperado: 201
+-> GUARDATE el IdPostulacion
+
+PATCH /api/postulaciones/<IdPostulacion>/contratar
+Body:
+{
+  "Telefono": "88887777"
+}
+-> Esperado: 200, debería crear el Empleado, generar correo
+   @vetcare.com y contraseña temporal, y mandarle el correo
+-> Revisar la bandeja del correo real que usaste en CorreoElectronico
+
+--- crear otra postulación nueva para probar rechazar:
+PATCH /api/postulaciones/<OTRA_IdPostulacion>/rechazar
+-> Esperado: 200
+
+DELETE /api/postulaciones/<IdPostulacion>  (al final, con una sin contratar)
+-> Esperado: 200
+
+--- Empleados (creados directamente, sin pasar por postulación) ---
+GET /api/postulaciones/empleados
+-> Esperado: 200, lista de empleados
+
+GET /api/postulaciones/empleados/veterinarios
+-> Esperado: 200, solo empleados con rol Veterinario
+
+POST /api/postulaciones/empleados
+Body:
+{
+  "NombreCompleto": "Empleado Directo de Prueba",
+  "Cedula": "1112223334",
+  "CorreoElectronico": "empleadoprueba@correo.com",
+  "Telefono": "88886666",
+  "FechaContratacion": "2026-09-15",
+  "Activo": true,
+  "IdRol": <IdRol_valido>,
+  "IdPostulacion": null
+}
+-> Esperado: 201
+-> GUARDATE el IdEmpleado
+
+PUT /api/postulaciones/empleados/<IdEmpleado>
+Body: (mismo formato que arriba, con algún campo editado)
+-> Esperado: 200
+
+PATCH /api/postulaciones/empleados/<IdEmpleado>/contrasena
+Body:
+{
+  "contrasena": "NuevaClave123!"
+}
+-> Esperado: 200
+
+DELETE /api/postulaciones/empleados/<IdEmpleado>  (al final)
+-> Esperado: 200
+
+

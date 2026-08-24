@@ -7,7 +7,7 @@ const {
   crearAnimal,
   actualizarAnimal,
   eliminarAnimal,
-} = require('../controller/refugioController');
+} = require('../controller/RefugioController');
 
 router.get('/', getAnimales);
 router.get('/disponibles', getAnimalesDisponibles);

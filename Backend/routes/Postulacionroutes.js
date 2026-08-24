@@ -9,12 +9,20 @@ const {
   eliminarPostulacion,
   getEmpleados,
   getVeterinarios,
-} = require('../controller/postulacionController');
+  crearEmpleado,
+  actualizarEmpleado,
+  eliminarEmpleado,
+  cambiarContrasenaEmpleado,
+} = require('../controller/PostulacionController');
 
 router.get('/', getPostulaciones);
 router.get('/reporte', getReportePostulaciones);
 router.get('/empleados', getEmpleados);
 router.get('/empleados/veterinarios', getVeterinarios);
+router.post('/empleados', crearEmpleado);
+router.put('/empleados/:id', actualizarEmpleado);
+router.delete('/empleados/:id', eliminarEmpleado);
+router.patch('/empleados/:id/contrasena', cambiarContrasenaEmpleado);
 router.post('/', crearPostulacion);
 router.patch('/:id/contratar', contratarEmpleado);
 router.patch('/:id/rechazar', rechazarPostulacion);

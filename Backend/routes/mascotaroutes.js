@@ -8,7 +8,7 @@ const {
   crearMascota,
   actualizarMascota,
   eliminarMascota,
-} = require('../controller/mascotaController');
+} = require('../controller/MascotaController');
 
 router.get('/', getMascotas);
 router.get('/buscar', buscarMascota);
