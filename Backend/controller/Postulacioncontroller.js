@@ -1,4 +1,7 @@
 const { sql, getPool } = require('../config/db');
+const { enviarCorreo } = require('../utils/mailer');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 // GET /api/postulaciones
 async function getPostulaciones(req, res) {
@@ -65,6 +68,61 @@ async function crearPostulacion(req, res) {
   }
 }
 
+// Genera un correo tipo nombre.apellido@vetcare.com, evitando duplicados
+async function generarCorreoEmpleado(pool, nombreCompleto) {
+  const partes = nombreCompleto
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita tildes
+    .toLowerCase()
+    .trim()
+    .split(/\s+/);
+
+  const nombre = partes[0] || 'empleado';
+  const apellido = partes[1] || '';
+  const base = apellido ? `${nombre}.${apellido}` : nombre;
+
+  let correo = `${base}@vetcare.com`;
+  let contador = 1;
+
+  while (true) {
+    const existe = await pool.request()
+      .input('Correo', sql.VarChar(100), correo)
+      .query('SELECT 1 FROM Empleado WHERE CorreoElectronico = @Correo');
+
+    if (existe.recordset.length === 0) break;
+
+    contador++;
+    correo = `${base}${contador}@vetcare.com`;
+  }
+
+  return correo;
+}
+
+// Genera una contraseña temporal segura de 10 caracteres
+function generarContrasenaTemporal() {
+  const mayuscula = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const minuscula = 'abcdefghijklmnopqrstuvwxyz';
+  const numeros = '0123456789';
+  const especiales = '!@#$%';
+
+  const obtenerCaracter = (cadena) => cadena[crypto.randomInt(0, cadena.length)];
+
+  let contrasena = '';
+  contrasena += obtenerCaracter(mayuscula);
+  contrasena += obtenerCaracter(minuscula);
+  contrasena += obtenerCaracter(numeros);
+  contrasena += obtenerCaracter(especiales);
+
+  const todos = mayuscula + minuscula + numeros + especiales;
+  while (contrasena.length < 10) {
+    contrasena += obtenerCaracter(todos);
+  }
+
+  return contrasena
+    .split('')
+    .sort(() => crypto.randomInt(0, 2) - 0.5)
+    .join('');
+}
+
 // PATCH /api/postulaciones/:id/contratar
 async function contratarEmpleado(req, res) {
   const { Telefono } = req.body;
@@ -75,12 +133,50 @@ async function contratarEmpleado(req, res) {
 
   try {
     const pool = await getPool();
+
+    // Buscar el nombre y correo personal de la persona en la postulación
+    const postulacion = await pool.request()
+      .input('IdPostulacion', sql.Int, req.params.id)
+      .query(`
+        SELECT NombreCompleto, CorreoElectronico
+        FROM Postulacion
+        WHERE IdPostulacion = @IdPostulacion
+      `);
+
+    if (postulacion.recordset.length === 0) {
+      return res.status(404).json({ message: 'La postulación no existe' });
+    }
+
+    const { NombreCompleto, CorreoElectronico: correoPersonal } = postulacion.recordset[0];
+
+    const correoNuevo = await generarCorreoEmpleado(pool, NombreCompleto);
+    const contrasenaTemporal = generarContrasenaTemporal();
+    const contrasenaHash = await bcrypt.hash(contrasenaTemporal, 10);
+
     await pool.request()
       .input('IdPostulacion', sql.Int, req.params.id)
       .input('Telefono', sql.VarChar(8), Telefono)
+      .input('CorreoEmpleado', sql.VarChar(100), correoNuevo)
+      .input('Contrasena', sql.VarChar(255), contrasenaHash)
       .execute('sp_ContratarEmpleado');
 
-    res.json({ message: 'Empleado contratado correctamente' });
+    // Correo al correo personal con las credenciales institucionales nuevas
+    enviarCorreo(
+      correoPersonal,
+      'Credenciales de acceso - VetCare',
+      `<p>Hola ${NombreCompleto},</p>
+       <p>Tu postulación fue <strong>aceptada</strong> y ya formás parte del equipo de VetCare.</p>
+       <p>Estas son tus credenciales de acceso al sistema:</p>
+       <p><strong>Correo institucional:</strong> ${correoNuevo}<br>
+       <strong>Contraseña temporal:</strong> ${contrasenaTemporal}</p>
+       <p>Por seguridad, deberás cambiar tu contraseña la primera vez que ingreses.</p>
+       <p>Saludos,<br>Equipo VetCare</p>`
+    );
+
+    res.json({
+      message: 'Empleado contratado correctamente y credenciales enviadas por correo',
+      correoAsignado: correoNuevo,
+    });
   } catch (err) {
     if (err.message.includes('no existe') || err.message.includes('procesada') || err.message.includes('generó')) {
       return res.status(400).json({ message: err.message });
@@ -154,6 +250,110 @@ async function getVeterinarios(req, res) {
   }
 }
 
+// POST /api/postulaciones/empleados  (crear empleado directamente)
+// POST /api/postulaciones/empleados  (crear empleado directamente)
+async function crearEmpleado(req, res) {
+  const { NombreCompleto, Cedula, CorreoElectronico, Telefono, FechaContratacion, Activo, IdRol, IdPostulacion, contrasena } = req.body;
+
+  if (!NombreCompleto || !Cedula || !IdRol || !IdPostulacion || !contrasena) {
+    return res.status(400).json({ message: 'NombreCompleto, Cedula, IdRol, IdPostulacion y contrasena son obligatorios' });
+  }
+
+  try {
+    const pool = await getPool();
+    const hash = await bcrypt.hash(contrasena, 10);
+
+    await pool.request()
+      .input('NombreCompleto', sql.VarChar(100), NombreCompleto)
+      .input('Cedula', sql.VarChar(10), Cedula)
+      .input('CorreoElectronico', sql.VarChar(100), CorreoElectronico || null)
+      .input('Telefono', sql.VarChar(8), Telefono || null)
+      .input('FechaContratacion', sql.Date, FechaContratacion || new Date())
+      .input('Activo', sql.Bit, Activo === undefined ? 1 : Activo)
+      .input('IdRol', sql.Int, IdRol)
+      .input('IdPostulacion', sql.Int, IdPostulacion)
+      .input('Contrasena', sql.VarChar(255), hash)
+      .execute('sp_CrearEmpleado');
+
+    res.status(201).json({ message: 'Empleado creado correctamente' });
+  } catch (err) {
+    if (err.message.includes('no existe') || err.message.includes('UNIQUE')) {
+      return res.status(400).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
+// PUT /api/postulaciones/empleados/:id
+async function actualizarEmpleado(req, res) {
+  const { NombreCompleto, Cedula, CorreoElectronico, Telefono, FechaContratacion, Activo, IdRol, IdPostulacion } = req.body;
+
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input('IdEmpleado', sql.Int, req.params.id)
+      .input('NombreCompleto', sql.VarChar(100), NombreCompleto)
+      .input('Cedula', sql.VarChar(10), Cedula)
+      .input('CorreoElectronico', sql.VarChar(100), CorreoElectronico || null)
+      .input('Telefono', sql.VarChar(8), Telefono || null)
+      .input('FechaContratacion', sql.Date, FechaContratacion)
+      .input('Activo', sql.Bit, Activo)
+      .input('IdRol', sql.Int, IdRol)
+      .input('IdPostulacion', sql.Int, IdPostulacion)
+      .execute('sp_ActualizarEmpleado');
+
+    res.json({ message: 'Empleado actualizado correctamente' });
+  } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
+// DELETE /api/postulaciones/empleados/:id
+async function eliminarEmpleado(req, res) {
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input('IdEmpleado', sql.Int, req.params.id)
+      .execute('sp_EliminarEmpleado');
+
+    res.json({ message: 'Empleado eliminado' });
+  } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
+// PATCH /api/postulaciones/empleados/:id/contrasena
+async function cambiarContrasenaEmpleado(req, res) {
+  const { contrasena } = req.body;
+
+  if (!contrasena || contrasena.length < 6) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+
+  try {
+    const hash = await bcrypt.hash(contrasena, 10);
+
+    const pool = await getPool();
+    await pool.request()
+      .input('IdEmpleado', sql.Int, req.params.id)
+      .input('Contrasena', sql.VarChar(255), hash)
+      .execute('sp_AsignarContrasenaEmpleado');
+
+    res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({ message: err.message });
+    }
+    res.status(500).json({ message: err.message });
+  }
+}
+
 module.exports = {
   getPostulaciones,
   getReportePostulaciones,
@@ -163,4 +363,8 @@ module.exports = {
   eliminarPostulacion,
   getEmpleados,
   getVeterinarios,
+  crearEmpleado,
+  actualizarEmpleado,
+  eliminarEmpleado,
+  cambiarContrasenaEmpleado,
 };

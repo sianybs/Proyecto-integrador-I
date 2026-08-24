@@ -8,7 +8,7 @@ const {
   crearAtencion,
   actualizarAtencion,
   eliminarAtencion,
-} = require('../controller/atencionController');
+} = require('../controller/AtencionController');
 
 router.get('/', getAtenciones);
 router.get('/reporte', getReporteAtenciones);

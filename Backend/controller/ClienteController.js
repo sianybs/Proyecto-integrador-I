@@ -87,10 +87,10 @@ async function eliminarCliente(req, res) {
 
     res.json({ message: 'Cliente eliminado' });
   } catch (err) {
-    if (err.message.includes('no existe')) {
-      return res.status(404).json({ message: err.message });
+        if (err.message.includes('REFERENCE constraint') || err.number === 547) {
+      return res.status(409).json({ message: 'No se puede eliminar: este cliente tiene mascotas, citas u otros registros asociados.' });
     }
-    res.status(500).json({ message: 'No se pudo eliminar (puede tener registros asociados)', detalle: err.message });
+    res.status(500).json({ message: err.message });
   }
 }
 

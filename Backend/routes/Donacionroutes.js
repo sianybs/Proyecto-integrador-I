@@ -8,7 +8,7 @@ const {
   aprobarDonacion,
   rechazarDonacion,
   eliminarDonacion,
-} = require('../controller/donacionController');
+} = require('../controller/DonacionController');
 
 router.get('/', getDonaciones);
 router.get('/periodo', getDonacionesPorPeriodo);
