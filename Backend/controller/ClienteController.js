@@ -48,8 +48,10 @@ async function crearCliente(req, res) {
     res.status(201).json({ message: 'Cliente creado correctamente' });
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
-      return res.status(409).json({ message: 'Ya existe un cliente con esa cédula' });
-    }
+  return res.status(409).json({
+    message: 'Ya existe un dueño con esa cédula o correo electrónico',
+  });
+}
     res.status(500).json({ message: err.message });
   }
 }

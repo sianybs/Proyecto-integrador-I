@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "msnodesqlv8": "^5.2.3"
+    "msnodesqlv8": "^5.2.3",
+    "nodemailer": "^9.0.5"
   }
 }
