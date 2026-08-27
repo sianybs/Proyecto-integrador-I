@@ -63,6 +63,20 @@ async function crearCita(req, res) {
     return res.status(400).json({ message: 'Fecha, Hora, Motivo e IdMascota son obligatorios' });
   }
 
+  const fechaHoraCita = new Date(`${Fecha}T${Hora}:00`);
+
+if (Number.isNaN(fechaHoraCita.getTime())) {
+  return res.status(400).json({
+    message: 'La fecha o la hora de la cita no es válida.',
+  });
+}
+
+if (fechaHoraCita <= new Date()) {
+  return res.status(400).json({
+    message: 'No se puede agendar una cita en una fecha u hora que ya pasó.',
+  });
+}
+
   // Validar horario de atención (8:00am - 4:00pm) directo en Node
   if (Hora < '08:00' || Hora > '16:00') {
     return res.status(400).json({ message: 'Las citas solo se pueden agendar entre las 8:00 a.m. y las 4:00 p.m.' });

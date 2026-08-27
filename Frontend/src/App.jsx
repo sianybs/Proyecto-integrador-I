@@ -1,122 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import RutaProtegida from './components/RutaProtegida';
+
+import Home from './pages/publico/Home';
+import Login from './pages/staff/Login';
+import Dashboard from './pages/staff/Dashboard';
+import Duenos from './pages/salud/Duenos';
+import Mascotas from './pages/salud/Mascotas';
+import Citas from './pages/salud/Citas';
+import Atenciones from './pages/salud/Atenciones';
+
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* --- Sitio publico (Bloque A) --- */}
+          <Route path="/" element={<Home />} />
+          {/* Ejemplo de como se van a ir agregando las demas paginas publicas:
+              <Route path="/adopciones" element={<Adopciones />} />
+              <Route path="/donaciones" element={<DonacionesPublico />} />
+              <Route path="/postulaciones" element={<PostulacionPublica />} />
+              <Route path="/contacto" element={<Contacto />} /> */}
 
-      <div className="ticks"></div>
+          {/* --- Login unico (staff y clientes; el destino despues de
+              loguearse depende del rol que devuelve el backend) --- */}
+          <Route path="/login" element={<Login />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {/* --- Sitio interno / staff --- */}
+          <Route
+            path="/staff"
+            element={
+              <RutaProtegida>
+                <Dashboard />
+              </RutaProtegida>
+            }
+          />
+          {/* Estas 3 pantallas son del bloque de Salud: solo Administrador,
+              Veterinario y Recepcionista pueden entrar (aunque escriban
+              la URL directo) */}
+          <Route
+            path="/staff/duenos"
+            element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Veterinario', 'Recepcionista']}>
+                <Duenos />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/staff/mascotas"
+            element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Veterinario', 'Recepcionista']}>
+                <Mascotas />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/staff/citas"
+            element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Veterinario', 'Recepcionista']}>
+                <Citas />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/staff/atenciones"
+            element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Veterinario', 'Recepcionista']}>
+                <Atenciones />
+              </RutaProtegida>
+            }
+          />
+          {/* Bloque de Salud completo con esto.
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+              Bloque C (Refugio) va a agregar rutas como:
+              <Route path="/staff/animales" element={<RutaProtegida><Animales /></RutaProtegida>} />
+              <Route path="/staff/adopciones" element={<RutaProtegida><AdopcionesStaff /></RutaProtegida>} />
+              <Route path="/staff/donaciones" element={<RutaProtegida><DonacionesStaff /></RutaProtegida>} />
+              <Route path="/staff/postulaciones" element={<RutaProtegida><PostulacionesStaff /></RutaProtegida>} />
+
+              Si alguna pantalla debe ser SOLO de un rol (ej. gestionar
+              empleados, solo Administrador), se usa:
+              <RutaProtegida rolesPermitidos={['Administrador']}> ... </RutaProtegida> */}
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
