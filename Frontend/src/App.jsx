@@ -1,8 +1,20 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import RutaProtegida from './components/RutaProtegida';
+import LayoutPublico from './components/publico/LayoutPublico';
 
 import Home from './pages/publico/Home';
+import Nosotros from './pages/publico/Nosotros';
+import Ubicacion from './pages/publico/Ubicacion';
+import Contacto from './pages/publico/Contacto';
+import InicioVeterinaria from './pages/publico/InicioVeterinaria';
+import InicioRefugio from './pages/publico/InicioRefugio';
+import Catalogo from './pages/publico/Catalogo';
+import Registro from './pages/publico/Registro';
+import AgendarCita from './pages/publico/AgendarCita';
+import SolicitarAdopcion from './pages/publico/SolicitarAdopcion';
+import Donar from './pages/publico/Donar';
+import Postularse from './pages/publico/Postularse';
 import Login from './pages/staff/Login';
 import Dashboard from './pages/staff/Dashboard';
 import Duenos from './pages/salud/Duenos';
@@ -22,17 +34,51 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* --- Sitio publico (Bloque A) --- */}
-          <Route path="/" element={<Home />} />
-          {/* Ejemplo de como se van a ir agregando las demas paginas publicas:
-              <Route path="/adopciones" element={<Adopciones />} />
-              <Route path="/donaciones" element={<DonacionesPublico />} />
-              <Route path="/postulaciones" element={<PostulacionPublica />} />
-              <Route path="/contacto" element={<Contacto />} /> */}
+          {/* --- Sitio publico + Cliente (Bloque A) --- */}
+          <Route element={<LayoutPublico />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/nosotros" element={<Nosotros />} />
+            <Route path="/ubicacion" element={<Ubicacion />} />
+            <Route path="/contacto" element={<Contacto />} />
+            <Route path="/veterinaria" element={<InicioVeterinaria />} />
+            <Route path="/refugio" element={<InicioRefugio />} />
+            <Route path="/refugio/catalogo" element={<Catalogo />} />
+            <Route path="/empleo/postularse" element={<Postularse />} />
+
+            {/* Formularios que exigen estar logueado como Cliente */}
+            <Route
+              path="/citas/agendar"
+              element={
+                <RutaProtegida rolesPermitidos={['Cliente']}>
+                  <AgendarCita />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/adopcion/solicitar"
+              element={
+                <RutaProtegida rolesPermitidos={['Cliente']}>
+                  <SolicitarAdopcion />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/donar"
+              element={
+                <RutaProtegida rolesPermitidos={['Cliente']}>
+                  <Donar />
+                </RutaProtegida>
+              }
+            />
+          </Route>
 
           {/* --- Login unico (staff y clientes; el destino despues de
               loguearse depende del rol que devuelve el backend) --- */}
           <Route path="/login" element={<Login />} />
+
+          {/* Registro de cliente: pantalla completa, sin navbar/footer
+              del sitio publico (igual que el login) */}
+          <Route path="/registro" element={<Registro />} />
 
           {/* --- Sitio interno / staff --- */}
           <Route

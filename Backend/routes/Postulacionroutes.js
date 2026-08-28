@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getPostulaciones,
   getReportePostulaciones,
+  getRolesEmpleado,
   crearPostulacion,
   contratarEmpleado,
   rechazarPostulacion,
@@ -17,6 +18,7 @@ const {
 
 router.get('/', getPostulaciones);
 router.get('/reporte', getReportePostulaciones);
+router.get('/roles', getRolesEmpleado);
 router.get('/empleados', getEmpleados);
 router.get('/empleados/veterinarios', getVeterinarios);
 router.post('/empleados', crearEmpleado);

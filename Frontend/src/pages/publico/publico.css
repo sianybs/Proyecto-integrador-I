@@ -1,0 +1,593 @@
+/* ==========================================================================
+   Sitio publico + Cliente (Bloque A)
+   Paleta restringida a: rojo, azul, blanco y negro (mas variaciones de
+   opacidad de esos mismos colores para texto secundario / bordes suaves).
+   ========================================================================== */
+
+.sitio-publico {
+  --rojo: #d62828;
+  --rojo-oscuro: #a4161a;
+  --azul: #1d3557;
+  --azul-claro: #2a6fb0;
+  --blanco: #ffffff;
+  --negro: #131313;
+
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--negro);
+  background: var(--blanco);
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sitio-publico * {
+  box-sizing: border-box;
+}
+
+.sitio-publico a {
+  color: inherit;
+}
+
+.sitio-publico h1,
+.sitio-publico h2,
+.sitio-publico h3 {
+  color: var(--negro);
+  margin: 0 0 0.5rem;
+}
+
+/* ---------- Navbar ---------- */
+.navbar-publico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  border-bottom: 2px solid var(--negro);
+  flex-wrap: wrap;
+}
+
+.navbar-publico .logo {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  line-height: 1.1;
+}
+
+.navbar-publico .logo .marca {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--negro);
+}
+
+.navbar-publico .logo .submarca {
+  font-size: 0.7rem;
+  color: rgba(19, 19, 19, 0.55);
+}
+
+.navbar-publico nav {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.navbar-publico nav a {
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--negro);
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid transparent;
+}
+
+.navbar-publico nav a:hover,
+.navbar-publico nav a.activo {
+  border-bottom-color: var(--rojo);
+}
+
+.navbar-publico .acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar-publico .saludo {
+  font-size: 0.85rem;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-block;
+  border: 2px solid var(--negro);
+  border-radius: 6px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  background: var(--blanco);
+  color: var(--negro);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-rojo {
+  background: var(--rojo);
+  border-color: var(--rojo);
+  color: var(--blanco);
+}
+
+.btn-rojo:hover:not(:disabled) {
+  background: var(--rojo-oscuro);
+  border-color: var(--rojo-oscuro);
+}
+
+.btn-azul {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: var(--blanco);
+}
+
+.btn-azul:hover:not(:disabled) {
+  background: #142642;
+  border-color: #142642;
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--negro);
+  color: var(--negro);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--negro);
+  color: var(--blanco);
+}
+
+.btn-bloque {
+  display: block;
+  width: 100%;
+}
+
+/* ---------- Contenedor general de pagina ---------- */
+.contenido-publico {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Centra verticalmente las paginas simples (Inicio, Nosotros, Ubicacion,
+   Contacto, Catalogo) en el espacio libre entre el navbar y el footer.
+   El selector de hijo directo deja afuera a las paginas con hero
+   (InicioVeterinaria/InicioRefugio), que anidan esta misma clase mas
+   adentro y deben seguir arrancando arriba. */
+.contenido-publico > .pagina-publica-ancho {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pagina-publica-ancho {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  width: 100%;
+}
+
+/* ---------- Caja/seccion (separa bloques como en los wireframes) ---------- */
+.caja {
+  border: 2px solid var(--negro);
+  border-radius: 10px;
+  padding: 2rem;
+  background: var(--blanco);
+  margin-bottom: 2rem;
+}
+
+.caja-roja {
+  border-color: var(--rojo);
+}
+
+.caja-azul {
+  border-color: var(--azul);
+}
+
+/* ---------- Hero / franjas de portada ---------- */
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2.5rem;
+  align-items: center;
+  padding: 3rem 2rem;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-texto h1 {
+  font-size: 2.1rem;
+  line-height: 1.2;
+}
+
+.hero-texto p {
+  color: rgba(19, 19, 19, 0.7);
+  margin: 0.75rem 0 1.5rem;
+}
+
+.hero-botones {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.hero-imagen {
+  height: 260px;
+  border: 2px solid var(--negro);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  background: rgba(19, 19, 19, 0.03);
+}
+
+.hero-azul {
+  background: var(--azul);
+  color: var(--blanco);
+}
+
+.hero-azul .hero-texto p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-azul .hero-imagen {
+  border-color: var(--blanco);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-rojo {
+  background: var(--rojo);
+  color: var(--blanco);
+}
+
+.hero-rojo .hero-texto p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero-rojo .hero-imagen {
+  border-color: var(--blanco);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- "Que estas buscando" (Home) ---------- */
+.eleccion-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 2px solid var(--negro);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .eleccion-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eleccion-opcion {
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.eleccion-opcion:first-child {
+  border-right: 2px solid var(--negro);
+}
+
+@media (max-width: 700px) {
+  .eleccion-opcion:first-child {
+    border-right: none;
+    border-bottom: 2px solid var(--negro);
+  }
+}
+
+/* ---------- Grillas de tarjetas (catalogo, roles, etc.) ---------- */
+.tarjetas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.tarjeta {
+  border: 2px solid var(--negro);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--blanco);
+}
+
+.tarjeta-imagen {
+  height: 150px;
+  background: rgba(19, 19, 19, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.75rem;
+  border-bottom: 2px solid var(--negro);
+}
+
+.tarjeta-cuerpo {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.tarjeta-cuerpo h3 {
+  font-size: 1.05rem;
+}
+
+.tarjeta-cuerpo .etiqueta {
+  font-size: 0.8rem;
+  color: rgba(19, 19, 19, 0.6);
+}
+
+.tarjeta-cuerpo .descripcion {
+  font-size: 0.85rem;
+  color: rgba(19, 19, 19, 0.75);
+  flex: 1;
+}
+
+/* ---------- Formularios ---------- */
+.form-publico {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.form-publico h1 {
+  font-size: 1.6rem;
+}
+
+.form-publico .subtitulo {
+  color: rgba(19, 19, 19, 0.65);
+  margin-bottom: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.form-publico label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.form-publico label.ancho-completo {
+  grid-column: 1 / -1;
+}
+
+.form-publico input,
+.form-publico select,
+.form-publico textarea {
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  border: 2px solid var(--negro);
+  font-size: 0.95rem;
+  font-weight: normal;
+  font-family: inherit;
+  background: var(--blanco);
+  color: var(--negro);
+}
+
+.form-publico input:focus,
+.form-publico select:focus,
+.form-publico textarea:focus {
+  outline: 2px solid var(--azul);
+  outline-offset: 1px;
+}
+
+.form-publico .campo-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.form-publico .campo-checkbox input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.form-botones {
+  display: flex;
+  gap: 0.9rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mensaje-error {
+  color: var(--rojo);
+  background: rgba(214, 40, 40, 0.08);
+  border: 1px solid var(--rojo);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.mensaje-exito {
+  color: var(--azul);
+  background: rgba(29, 53, 87, 0.08);
+  border: 1px solid var(--azul);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.mensaje-aviso {
+  border: 1px dashed var(--negro);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  margin: 0 0 1.25rem;
+}
+
+/* ---------- Tarjeta de login/registro (estilo wireframe) ---------- */
+.tarjeta-cuenta {
+  border: 2px solid var(--negro);
+  border-radius: 12px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--blanco);
+}
+
+.tarjeta-cuenta .marca-login {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.tarjeta-cuenta .marca-login .marca {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.tarjeta-cuenta .marca-login .submarca {
+  font-size: 0.7rem;
+  color: rgba(19, 19, 19, 0.55);
+}
+
+.tarjeta-cuenta h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+}
+
+.tarjeta-cuenta .subtitulo {
+  color: rgba(19, 19, 19, 0.6);
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.tarjeta-cuenta label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.tarjeta-cuenta input {
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  border: 2px solid var(--negro);
+  font-size: 1rem;
+  width: 100%;
+}
+
+.tarjeta-cuenta button {
+  margin-top: 1.25rem;
+}
+
+.tarjeta-cuenta .enlace-secundario {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.tarjeta-cuenta .enlace-secundario a {
+  color: var(--azul);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tarjeta-cuenta .enlace-secundario a:hover {
+  text-decoration: underline;
+}
+
+.pantalla-cuenta {
+  min-height: calc(100vh - 90px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.columna-cuenta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.enlace-volver {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--negro);
+}
+
+.enlace-volver:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Info (Nosotros / Ubicacion / Contacto) ---------- */
+.info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.info-item {
+  border: 2px solid var(--negro);
+  border-radius: 10px;
+  padding: 1.5rem;
+  flex: 1 1 240px;
+  max-width: 320px;
+}
+
+.info-item h3 {
+  color: var(--azul);
+}
+
+/* ---------- Footer ---------- */
+.footer-publico {
+  border-top: 2px solid var(--negro);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(19, 19, 19, 0.65);
+}
+
+/* ---------- Utilidades ---------- */
+.centrado {
+  text-align: center;
+}
+
+.espaciador {
+  height: 1.5rem;
+}

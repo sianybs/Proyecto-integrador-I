@@ -1058,15 +1058,23 @@ CREATE PROCEDURE sp_CrearCliente
     @Nombre VARCHAR(100),
     @Cedula VARCHAR(10),
     @Telefono VARCHAR(8),
-    @Correo VARCHAR(100)
+    @Correo VARCHAR(100),
+    @Contrasena VARCHAR(255) = NULL
 )
 AS
 BEGIN
-    INSERT INTO Cliente (NombreCompleto, Cedula, Telefono, CorreoElectronico)
-    VALUES (@Nombre, @Cedula, @Telefono, @Correo);
+    INSERT INTO Cliente (NombreCompleto, Cedula, Telefono, CorreoElectronico, Contrasena)
+    VALUES (@Nombre, @Cedula, @Telefono, @Correo, @Contrasena);
 END;
 GO
-
+-- NOTA DE RUTH;
+-- Agregue CORREO Y CONTRASEÑA al procedimiento de 
+-- creación de cliente para permitir el registro completo del cliente 
+-- con credenciales de acceso.
+-- Si fuera a "romper" o "hacer caer la" base de datos, se podría eliminar 
+-- la columna de contraseña y correo electrónico del procedimiento de creación de cliente, 
+-- yo me puedo encargar de ELIMINARLO si hubiera un problema,
+-- pero por ahora lo dejé así para que el registro de clientes sea completo.
 CREATE PROCEDURE sp_ConsultarClientes
 AS
 BEGIN
@@ -1116,6 +1124,7 @@ BEGIN
     BEGIN RAISERROR('El cliente no existe.',16,1); RETURN; END;
     INSERT INTO Mascota (Nombre,Especie,Raza,EdadAnimal,IdCliente)
     VALUES (@Nombre,@Especie,@Raza,@Edad,@IdCliente);
+    SELECT SCOPE_IDENTITY() AS IdMascota;
 END;
 GO
 

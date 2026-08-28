@@ -56,7 +56,7 @@ async function crearMascota(req, res) {
 
   try {
     const pool = await getPool();
-    await pool.request()
+    const result = await pool.request()
       .input('Nombre', sql.VarChar(35), Nombre)
       .input('Especie', sql.VarChar(15), Especie)
       .input('Raza', sql.VarChar(25), Raza || null)
@@ -64,7 +64,9 @@ async function crearMascota(req, res) {
       .input('IdCliente', sql.Int, IdCliente)
       .execute('sp_CrearMascota');
 
-    res.status(201).json({ message: 'Mascota creada correctamente' });
+    const idMascota = result.recordset?.[0]?.IdMascota;
+
+    res.status(201).json({ message: 'Mascota creada correctamente', IdMascota: idMascota });
   } catch (err) {
     if (err.message.includes('no existe')) {
       return res.status(400).json({ message: err.message });
