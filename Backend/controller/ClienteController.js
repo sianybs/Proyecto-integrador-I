@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const { sql, getPool } = require('../config/db');
 
 // GET /api/clientes
@@ -29,20 +30,29 @@ async function getClientePorId(req, res) {
 }
 
 // POST /api/clientes
+// Contrasena es opcional: si se manda (registro de cliente desde el sitio
+// publico), se guarda encriptada y ese cliente ya puede hacer login.
 async function crearCliente(req, res) {
-  const { NombreCompleto, Cedula, Telefono, CorreoElectronico } = req.body;
+  const { NombreCompleto, Cedula, Telefono, CorreoElectronico, Contrasena } = req.body;
 
   if (!NombreCompleto || !Cedula || !Telefono || !CorreoElectronico) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
 
+  if (Contrasena && Contrasena.length < 6) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+
   try {
+    const hash = Contrasena ? await bcrypt.hash(Contrasena, 10) : null;
+
     const pool = await getPool();
     await pool.request()
       .input('Nombre', sql.VarChar(100), NombreCompleto)
       .input('Cedula', sql.VarChar(10), Cedula)
       .input('Telefono', sql.VarChar(8), Telefono)
       .input('Correo', sql.VarChar(100), CorreoElectronico)
+      .input('Contrasena', sql.VarChar(255), hash)
       .execute('sp_CrearCliente');
 
     res.status(201).json({ message: 'Cliente creado correctamente' });

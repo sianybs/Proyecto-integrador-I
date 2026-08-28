@@ -66,6 +66,26 @@ async function getReportePostulaciones(req, res) {
   }
 }
 
+// GET /api/postulaciones/roles  (para el select del formulario público de empleo)
+async function getRolesEmpleado(req, res) {
+  try {
+    const pool = await getPool();
+
+    const result = await pool.request().query(`
+      SELECT IdRol, NombreRol
+      FROM RolEmpleado
+      WHERE NombreRol <> 'Administrador'
+      ORDER BY NombreRol
+    `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({
+      message: err.message
+    });
+  }
+}
+
 // POST /api/postulaciones
 async function crearPostulacion(req, res) {
   const {
@@ -853,6 +873,7 @@ async function cambiarContrasenaEmpleado(
 module.exports = {
   getPostulaciones,
   getReportePostulaciones,
+  getRolesEmpleado,
   crearPostulacion,
   contratarEmpleado,
   rechazarPostulacion,
