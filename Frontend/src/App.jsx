@@ -9,7 +9,12 @@ import Duenos from './pages/salud/Duenos';
 import Mascotas from './pages/salud/Mascotas';
 import Citas from './pages/salud/Citas';
 import Atenciones from './pages/salud/Atenciones';
-
+import Animales from './pages/refugio/Animales';
+import Adopciones from './pages/refugio/Adopciones';
+import Donaciones from './pages/refugio/Donaciones';
+import Postulaciones from './pages/refugio/Postulaciones';
+import Empleados from './pages/refugio/Empleados';
+import Reportes from './pages/refugio/Reportes';
 import './App.css';
 
 function App() {
@@ -73,17 +78,59 @@ function App() {
               </RutaProtegida>
             }
           />
-          {/* Bloque de Salud completo con esto.
+           {/* --- Bloque C: Refugio --- */}
+          <Route
+            path="/staff/animales"
+            element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Encargado del Refugio']}>
+                <Animales />
+              </RutaProtegida>
+              
+            }
+            
+          /><Route
+           path="/staff/adopciones"
+           element={
+              <RutaProtegida rolesPermitidos={['Administrador', 'Encargado del Refugio']}>
+            <Adopciones />
+           </RutaProtegida>
+  }
+/>
+<Route
+  path="/staff/donaciones"
+  element={
+    <RutaProtegida rolesPermitidos={['Administrador', 'Encargado del Refugio']}>
+      <Donaciones />
+    </RutaProtegida>
+  }
+/>
+<Route
+  path="/staff/postulaciones"
+  element={
+    <RutaProtegida rolesPermitidos={['Administrador']}>
+      <Postulaciones />
+    </RutaProtegida>
+  }
+/>
+<Route
+  path="/staff/empleados"
+  element={
+    <RutaProtegida rolesPermitidos={['Administrador']}>
+      <Empleados />
+    </RutaProtegida>
+  }
+/>
+<Route
+  path="/staff/reportes"
+  element={
+    <RutaProtegida rolesPermitidos={['Administrador']}>
+      <Reportes />
+    </RutaProtegida>
+  }
+/>
 
-              Bloque C (Refugio) va a agregar rutas como:
-              <Route path="/staff/animales" element={<RutaProtegida><Animales /></RutaProtegida>} />
-              <Route path="/staff/adopciones" element={<RutaProtegida><AdopcionesStaff /></RutaProtegida>} />
-              <Route path="/staff/donaciones" element={<RutaProtegida><DonacionesStaff /></RutaProtegida>} />
-              <Route path="/staff/postulaciones" element={<RutaProtegida><PostulacionesStaff /></RutaProtegida>} />
+          
 
-              Si alguna pantalla debe ser SOLO de un rol (ej. gestionar
-              empleados, solo Administrador), se usa:
-              <RutaProtegida rolesPermitidos={['Administrador']}> ... </RutaProtegida> */}
         </Routes>
       </AuthProvider>
     </BrowserRouter>
