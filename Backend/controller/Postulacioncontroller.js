@@ -1,4 +1,11 @@
+const fs = require('fs');
 const { sql, getPool } = require('../config/db');
+
+function eliminarCurriculumTemporal(archivo) {
+  if (archivo?.path && fs.existsSync(archivo.path)) {
+    fs.unlinkSync(archivo.path);
+  }
+}
 const { enviarCorreo } = require('../utils/mailer');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -72,9 +79,10 @@ async function getRolesEmpleado(req, res) {
     const pool = await getPool();
 
     const result = await pool.request().query(`
-      SELECT IdRol, NombreRol
+      SELECT MIN(IdRol) AS IdRol, NombreRol
       FROM RolEmpleado
       WHERE NombreRol <> 'Administrador'
+      GROUP BY NombreRol
       ORDER BY NombreRol
     `);
 
@@ -93,7 +101,6 @@ async function crearPostulacion(req, res) {
     Cedula,
     FechaNacimiento,
     CorreoElectronico,
-    Curriculum,
     MotivoPostulacion,
     IdRol
   } = req.body;
@@ -106,9 +113,27 @@ async function crearPostulacion(req, res) {
     !MotivoPostulacion ||
     !IdRol
   ) {
+    eliminarCurriculumTemporal(req.file);
     return res.status(400).json({
       message:
         'Todos los campos son obligatorios (Curriculum es opcional)'
+    });
+  }
+
+  const nacimiento = new Date(`${FechaNacimiento}T00:00:00`);
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const aunNoCumple =
+    hoy.getMonth() < nacimiento.getMonth() ||
+    (hoy.getMonth() === nacimiento.getMonth() &&
+      hoy.getDate() < nacimiento.getDate());
+
+  if (aunNoCumple) edad -= 1;
+
+  if (Number.isNaN(nacimiento.getTime()) || edad < 18) {
+    eliminarCurriculumTemporal(req.file);
+    return res.status(400).json({
+      message: 'Debes ser mayor de 18 años para enviar una postulación'
     });
   }
 
@@ -139,7 +164,7 @@ async function crearPostulacion(req, res) {
       .input(
         'Curriculum',
         sql.VarChar(255),
-        Curriculum || null
+        req.file ? `uploads/curriculos/${req.file.filename}` : null
       )
       .input(
         'MotivoPostulacion',
@@ -157,6 +182,7 @@ async function crearPostulacion(req, res) {
       message: 'Postulación registrada correctamente'
     });
   } catch (err) {
+    eliminarCurriculumTemporal(req.file);
     if (
       err.message.includes('no existe') ||
       err.message.includes('UNIQUE')
@@ -870,6 +896,58 @@ async function cambiarContrasenaEmpleado(
   }
 }
 
+// PATCH /api/postulaciones/empleados/mi-contrasena-temporal
+// Permite que el empleado autenticado reemplace la clave temporal recibida.
+async function cambiarMiContrasenaTemporal(req, res) {
+  const { contrasena, confirmarContrasena } = req.body;
+
+  if (!contrasena || contrasena.length < 6) {
+    return res.status(400).json({
+      message: 'La nueva contraseña debe tener al menos 6 caracteres'
+    });
+  }
+
+  if (contrasena !== confirmarContrasena) {
+    return res.status(400).json({
+      message: 'Las contraseñas no coinciden'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    const empleado = await pool.request()
+      .input('IdEmpleado', sql.Int, req.usuario.id)
+      .query(`
+        SELECT IdEmpleado, DebeCambiarContrasena
+        FROM Empleado
+        WHERE IdEmpleado = @IdEmpleado AND Activo = 1
+      `);
+
+    if (empleado.recordset.length === 0) {
+      return res.status(404).json({ message: 'El empleado no existe o está inactivo' });
+    }
+
+    const hash = await bcrypt.hash(contrasena, 10);
+
+    await pool.request()
+      .input('IdEmpleado', sql.Int, req.usuario.id)
+      .input('Contrasena', sql.VarChar(255), hash)
+      .query(`
+        UPDATE Empleado
+        SET Contrasena = @Contrasena,
+            DebeCambiarContrasena = 0
+        WHERE IdEmpleado = @IdEmpleado
+      `);
+
+    return res.json({
+      message: 'Tu contraseña fue establecida correctamente',
+      debeCambiarContrasena: false
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
 module.exports = {
   getPostulaciones,
   getReportePostulaciones,
@@ -883,5 +961,6 @@ module.exports = {
   crearEmpleado,
   actualizarEmpleado,
   eliminarEmpleado,
-  cambiarContrasenaEmpleado
+  cambiarContrasenaEmpleado,
+  cambiarMiContrasenaTemporal
 };

@@ -9,6 +9,18 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+transporter
+  .verify()
+  .then(() => {
+    console.log('Servicio de correo conectado correctamente');
+  })
+  .catch((err) => {
+    console.error(
+      'No se pudo conectar al servicio de correo:',
+      err.message
+    );
+  });
+
 /**
  * Envía un correo.
  * @param {string} destinatario - correo del receptor

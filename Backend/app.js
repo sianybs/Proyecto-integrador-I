@@ -1,11 +1,13 @@
 console.log('>>>> ESTE APP.JS SE ESTÁ EJECUTANDO DESDE:', __filename);
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const { getPool } = require('./config/db');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Rutas 
 app.use('/api/postulaciones', require('./routes/PostulacionRoutes'));
 app.use('/api/donaciones', require('./routes/DonacionRoutes'));

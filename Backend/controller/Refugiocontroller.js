@@ -42,6 +42,10 @@ async function getAnimalPorId(req, res) {
 // POST /api/refugio
 async function crearAnimal(req, res) {
   const { Nombre, Especie, Edad, Historia, Personalidad, HistorialSalud, Disponible } = req.body;
+  const Imagen = req.file ? `/uploads/animales/${req.file.filename}` : null;
+  const disponibleNormalizado = Disponible === undefined
+    ? true
+    : Disponible === true || Disponible === 1 || Disponible === 'true' || Disponible === '1';
 
   if (!Nombre || !Especie) {
     return res.status(400).json({ message: 'Nombre y Especie son obligatorios' });
@@ -56,8 +60,14 @@ async function crearAnimal(req, res) {
       .input('Historia', sql.VarChar(100), Historia || null)
       .input('Personalidad', sql.VarChar(50), Personalidad || null)
       .input('HistorialSalud', sql.VarChar(100), HistorialSalud || null)
-      .input('Disponible', sql.Bit, Disponible === undefined ? 1 : Disponible)
-      .execute('sp_CrearAnimalRefugio');
+      .input('Disponible', sql.Bit, disponibleNormalizado)
+      .input('Imagen', sql.VarChar(255), Imagen)
+      .query(`
+        INSERT INTO AnimalDelRefugio
+          (Nombre, Especie, Edad, Historia, Personalidad, HistorialSalud, Disponible, Imagen)
+        VALUES
+          (@Nombre, @Especie, @Edad, @Historia, @Personalidad, @HistorialSalud, @Disponible, @Imagen)
+      `);
 
     res.status(201).json({ message: 'Animal registrado correctamente' });
   } catch (err) {
@@ -68,10 +78,11 @@ async function crearAnimal(req, res) {
 // PUT /api/refugio/:id
 async function actualizarAnimal(req, res) {
   const { Nombre, Especie, Edad, Historia, Personalidad, HistorialSalud, Disponible } = req.body;
+  const disponibleNormalizado = Disponible === true || Disponible === 1 || Disponible === 'true' || Disponible === '1';
 
   try {
     const pool = await getPool();
-    await pool.request()
+    const resultado = await pool.request()
       .input('IdAnimalRefugio', sql.Int, req.params.id)
       .input('Nombre', sql.VarChar(30), Nombre)
       .input('Especie', sql.VarChar(30), Especie)
@@ -79,8 +90,24 @@ async function actualizarAnimal(req, res) {
       .input('Historia', sql.VarChar(100), Historia || null)
       .input('Personalidad', sql.VarChar(50), Personalidad || null)
       .input('HistorialSalud', sql.VarChar(100), HistorialSalud || null)
-      .input('Disponible', sql.Bit, Disponible)
-      .execute('sp_ActualizarAnimalRefugio');
+      .input('Disponible', sql.Bit, disponibleNormalizado)
+      .input('Imagen', sql.VarChar(255), req.file ? `/uploads/animales/${req.file.filename}` : null)
+      .query(`
+        UPDATE AnimalDelRefugio
+        SET Nombre = @Nombre,
+            Especie = @Especie,
+            Edad = @Edad,
+            Historia = @Historia,
+            Personalidad = @Personalidad,
+            HistorialSalud = @HistorialSalud,
+            Disponible = @Disponible,
+            Imagen = COALESCE(@Imagen, Imagen)
+        WHERE IdAnimalRefugio = @IdAnimalRefugio
+      `);
+
+    if (resultado.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: 'El animal no existe' });
+    }
 
     res.json({ message: 'Animal actualizado correctamente' });
   } catch (err) {

@@ -23,12 +23,60 @@ async function getSolicitudesPendientes(req, res) {
   }
 }
 
+// GET /api/adopciones/mis-adopciones
+// Devuelve solamente las solicitudes del cliente autenticado.
+async function getMisAdopciones(req, res) {
+  try {
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('IdCliente', sql.Int, req.usuario.id)
+      .query(`
+        SELECT
+          SA.IdSolicitud,
+          SA.CondicionVivienda,
+          SA.TieneMascotas,
+          SA.MotivoAdopcion,
+          SA.Estado,
+          A.IdAnimalRefugio,
+          A.Nombre AS NombreAnimal,
+          A.Especie,
+          A.Edad,
+          A.Personalidad,
+          A.Imagen
+        FROM SolicitudAdopcion SA
+        INNER JOIN AnimalDelRefugio A
+          ON A.IdAnimalRefugio = SA.IdAnimalRefugio
+        WHERE SA.IdCliente = @IdCliente
+          AND SA.Estado <> 'Devuelta'
+        ORDER BY SA.IdSolicitud DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
 // POST /api/adopciones  (Registrar adopción / solicitud)
 async function crearSolicitud(req, res) {
-  const { CondicionVivienda, TieneMascotas, MotivoAdopcion, IdCliente, IdAnimalRefugio } = req.body;
+  const { CondicionVivienda, TieneMascotas, MotivoAdopcion, FechaNacimiento, IdAnimalRefugio } = req.body;
+  const IdCliente = req.usuario.id;
 
-  if (!CondicionVivienda || TieneMascotas === undefined || !MotivoAdopcion || !IdCliente || !IdAnimalRefugio) {
+  if (!CondicionVivienda || TieneMascotas === undefined || !MotivoAdopcion || !FechaNacimiento || !IdCliente || !IdAnimalRefugio) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+
+  const nacimiento = new Date(`${FechaNacimiento}T00:00:00`);
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const aunNoCumplio = hoy.getMonth() < nacimiento.getMonth()
+    || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+  if (aunNoCumplio) edad -= 1;
+
+  if (Number.isNaN(nacimiento.getTime()) || edad < 18) {
+    return res.status(400).json({
+      message: 'Debes ser mayor de 18 años para solicitar una adopción'
+    });
   }
 
   try {
@@ -37,13 +85,14 @@ async function crearSolicitud(req, res) {
       .input('Condicion', sql.VarChar(75), CondicionVivienda)
       .input('TieneMascotas', sql.Bit, TieneMascotas)
       .input('Motivo', sql.VarChar(75), MotivoAdopcion)
+      .input('FechaNacimiento', sql.Date, FechaNacimiento)
       .input('IdCliente', sql.Int, IdCliente)
       .input('IdAnimal', sql.Int, IdAnimalRefugio)
       .execute('sp_CrearSolicitudAdopcion');
 
     res.status(201).json({ message: 'Solicitud de adopción registrada correctamente' });
   } catch (err) {
-    if (err.message.includes('no existe')) {
+    if (err.message.includes('no existe') || err.message.includes('mayor de 18')) {
       return res.status(400).json({ message: err.message });
     }
     res.status(500).json({ message: err.message });
@@ -138,6 +187,20 @@ async function getReporteAdopciones(req, res) {
 async function cancelarSolicitud(req, res) {
   try {
     const pool = await getPool();
+
+    const solicitud = await pool.request()
+      .input('IdSolicitud', sql.Int, req.params.id)
+      .input('IdCliente', sql.Int, req.usuario.id)
+      .query(`
+        SELECT IdSolicitud
+        FROM SolicitudAdopcion
+        WHERE IdSolicitud = @IdSolicitud AND IdCliente = @IdCliente
+      `);
+
+    if (solicitud.recordset.length === 0) {
+      return res.status(404).json({ message: 'La solicitud no existe o no pertenece a tu cuenta' });
+    }
+
     await pool.request()
       .input('IdSolicitud', sql.Int, req.params.id)
       .execute('sp_CancelarSolicitudAdopcion');
@@ -155,6 +218,20 @@ async function cancelarSolicitud(req, res) {
 async function devolverAdopcion(req, res) {
   try {
     const pool = await getPool();
+
+    const solicitud = await pool.request()
+      .input('IdSolicitud', sql.Int, req.params.id)
+      .input('IdCliente', sql.Int, req.usuario.id)
+      .query(`
+        SELECT IdSolicitud
+        FROM SolicitudAdopcion
+        WHERE IdSolicitud = @IdSolicitud AND IdCliente = @IdCliente
+      `);
+
+    if (solicitud.recordset.length === 0) {
+      return res.status(404).json({ message: 'La adopción no existe o no pertenece a tu cuenta' });
+    }
+
     await pool.request()
       .input('IdSolicitud', sql.Int, req.params.id)
       .execute('sp_DevolverAdopcion');
@@ -171,6 +248,7 @@ async function devolverAdopcion(req, res) {
 module.exports = {
   getSolicitudes,
   getSolicitudesPendientes,
+  getMisAdopciones,
   getReporteAdopciones,
   crearSolicitud,
   aprobarSolicitud,

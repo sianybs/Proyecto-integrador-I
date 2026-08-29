@@ -1,10 +1,10 @@
-const { sql, getPool } = require('../config/db');
+const { sql, getPool } = require("../config/db");
 
 // GET /api/mascotas  (incluye nombre del dueño)
 async function getMascotas(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request().execute('sp_ConsultarMascotas');
+    const result = await pool.request().execute("sp_ConsultarMascotas");
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -15,9 +15,9 @@ async function getMascotas(req, res) {
 async function getMascotaPorId(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request()
-      .input('IdMascota', sql.Int, req.params.id)
-      .query(`
+    const result = await pool
+      .request()
+      .input("IdMascota", sql.Int, req.params.id).query(`
         SELECT m.*, c.NombreCompleto AS NombreDueno
         FROM Mascota m
         INNER JOIN Cliente c ON m.IdCliente = c.IdCliente
@@ -25,7 +25,7 @@ async function getMascotaPorId(req, res) {
       `);
 
     if (result.recordset.length === 0) {
-      return res.status(404).json({ message: 'Mascota no encontrada' });
+      return res.status(404).json({ message: "Mascota no encontrada" });
     }
     res.json(result.recordset[0]);
   } catch (err) {
@@ -37,9 +37,15 @@ async function getMascotaPorId(req, res) {
 async function getMascotasPorCliente(req, res) {
   try {
     const pool = await getPool();
-    const result = await pool.request()
-      .input('IdCliente', sql.Int, req.params.idCliente)
-      .query('SELECT * FROM Mascota WHERE IdCliente = @IdCliente');
+    const result = await pool
+      .request()
+      .input("IdCliente", sql.Int, req.params.idCliente).query(`
+  SELECT *
+  FROM Mascota
+  WHERE IdCliente = @IdCliente
+    AND Activo = 1
+  ORDER BY IdMascota
+`);
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -51,24 +57,29 @@ async function crearMascota(req, res) {
   const { Nombre, Especie, Raza, EdadAnimal, IdCliente } = req.body;
 
   if (!Nombre || !Especie || !IdCliente) {
-    return res.status(400).json({ message: 'Nombre, Especie e IdCliente son obligatorios' });
+    return res
+      .status(400)
+      .json({ message: "Nombre, Especie e IdCliente son obligatorios" });
   }
 
   try {
     const pool = await getPool();
-    const result = await pool.request()
-      .input('Nombre', sql.VarChar(35), Nombre)
-      .input('Especie', sql.VarChar(15), Especie)
-      .input('Raza', sql.VarChar(25), Raza || null)
-      .input('Edad', sql.VarChar(15), EdadAnimal || null)
-      .input('IdCliente', sql.Int, IdCliente)
-      .execute('sp_CrearMascota');
+    const result = await pool
+      .request()
+      .input("Nombre", sql.VarChar(35), Nombre)
+      .input("Especie", sql.VarChar(15), Especie)
+      .input("Raza", sql.VarChar(25), Raza || null)
+      .input("Edad", sql.VarChar(15), EdadAnimal || null)
+      .input("IdCliente", sql.Int, IdCliente)
+      .execute("sp_CrearMascota");
 
     const idMascota = result.recordset?.[0]?.IdMascota;
 
-    res.status(201).json({ message: 'Mascota creada correctamente', IdMascota: idMascota });
+    res
+      .status(201)
+      .json({ message: "Mascota creada correctamente", IdMascota: idMascota });
   } catch (err) {
-    if (err.message.includes('no existe')) {
+    if (err.message.includes("no existe")) {
       return res.status(400).json({ message: err.message });
     }
     res.status(500).json({ message: err.message });
@@ -81,18 +92,19 @@ async function actualizarMascota(req, res) {
 
   try {
     const pool = await getPool();
-    await pool.request()
-      .input('IdMascota', sql.Int, req.params.id)
-      .input('Nombre', sql.VarChar(35), Nombre)
-      .input('Especie', sql.VarChar(15), Especie)
-      .input('Raza', sql.VarChar(25), Raza || null)
-      .input('Edad', sql.VarChar(15), EdadAnimal || null)
-      .input('IdCliente', sql.Int, IdCliente)
-      .execute('sp_ActualizarMascota');
+    await pool
+      .request()
+      .input("IdMascota", sql.Int, req.params.id)
+      .input("Nombre", sql.VarChar(35), Nombre)
+      .input("Especie", sql.VarChar(15), Especie)
+      .input("Raza", sql.VarChar(25), Raza || null)
+      .input("Edad", sql.VarChar(15), EdadAnimal || null)
+      .input("IdCliente", sql.Int, IdCliente)
+      .execute("sp_ActualizarMascota");
 
-    res.json({ message: 'Mascota actualizada correctamente' });
+    res.json({ message: "Mascota actualizada correctamente" });
   } catch (err) {
-    if (err.message.includes('no existe')) {
+    if (err.message.includes("no existe")) {
       return res.status(404).json({ message: err.message });
     }
     res.status(500).json({ message: err.message });
@@ -103,16 +115,22 @@ async function actualizarMascota(req, res) {
 async function eliminarMascota(req, res) {
   try {
     const pool = await getPool();
-    await pool.request()
-      .input('IdMascota', sql.Int, req.params.id)
-      .execute('sp_EliminarMascota');
+    await pool
+      .request()
+      .input("IdMascota", sql.Int, req.params.id)
+      .execute("sp_EliminarMascota");
 
-    res.json({ message: 'Mascota eliminada' });
+    res.json({ message: "Mascota eliminada" });
   } catch (err) {
-    if (err.message.includes('no existe')) {
+    if (err.message.includes("no existe")) {
       return res.status(404).json({ message: err.message });
     }
-    res.status(500).json({ message: 'No se pudo eliminar (puede tener citas asociadas)', detalle: err.message });
+    res
+      .status(500)
+      .json({
+        message: "No se pudo eliminar (puede tener citas asociadas)",
+        detalle: err.message,
+      });
   }
 }
 
@@ -121,14 +139,16 @@ async function buscarMascota(req, res) {
   const { nombre } = req.query;
 
   if (!nombre) {
-    return res.status(400).json({ message: 'Debes enviar ?nombre=texto a buscar' });
+    return res
+      .status(400)
+      .json({ message: "Debes enviar ?nombre=texto a buscar" });
   }
 
   try {
     const pool = await getPool();
-    const result = await pool.request()
-      .input('Nombre', sql.VarChar(70), `%${nombre}%`)
-      .query(`
+    const result = await pool
+      .request()
+      .input("Nombre", sql.VarChar(70), `%${nombre}%`).query(`
         SELECT M.IdMascota, M.Nombre AS NombreMascota, M.Especie, M.Raza, M.EdadAnimal,
                C.NombreCompleto AS NombreDueno, C.Telefono, C.CorreoElectronico
         FROM Mascota M
@@ -141,6 +161,124 @@ async function buscarMascota(req, res) {
   }
 }
 
+// PUT /api/mascotas/mi-mascota/:id
+async function actualizarMiMascota(req, res) {
+  const idMascota = Number(req.params.id);
+
+  const { Nombre, Especie, Raza, EdadAnimal } = req.body;
+
+  if (!Number.isInteger(idMascota)) {
+    return res.status(400).json({
+      message: "El identificador de la mascota no es válido",
+    });
+  }
+
+  if (!Nombre || !Especie) {
+    return res.status(400).json({
+      message: "El nombre y la especie son obligatorios",
+    });
+  }
+
+  try {
+    const pool = await getPool();
+
+    const mascotaActual = await pool
+      .request()
+      .input("IdMascota", sql.Int, idMascota).query(`
+        SELECT IdMascota, IdCliente
+        FROM Mascota
+        WHERE IdMascota = @IdMascota
+      `);
+
+    if (mascotaActual.recordset.length === 0) {
+      return res.status(404).json({
+        message: "Mascota no encontrada",
+      });
+    }
+
+    const mascota = mascotaActual.recordset[0];
+
+    if (Number(mascota.IdCliente) !== Number(req.usuario.id)) {
+      return res.status(403).json({
+        message: "No tienes permiso para modificar esta mascota",
+      });
+    }
+
+    await pool
+      .request()
+      .input("IdMascota", sql.Int, idMascota)
+      .input("Nombre", sql.VarChar(35), Nombre.trim())
+      .input("Especie", sql.VarChar(15), Especie.trim())
+      .input("Raza", sql.VarChar(25), Raza?.trim() || null)
+      .input("Edad", sql.VarChar(15), EdadAnimal?.trim() || null)
+      .input("IdCliente", sql.Int, req.usuario.id)
+      .execute("sp_ActualizarMascota");
+
+    res.json({
+      message: "Mascota actualizada correctamente",
+      mascota: {
+        IdMascota: idMascota,
+        Nombre: Nombre.trim(),
+        Especie: Especie.trim(),
+        Raza: Raza?.trim() || null,
+        EdadAnimal: EdadAnimal?.trim() || null,
+        IdCliente: req.usuario.id,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+}
+
+// PATCH /api/mascotas/mi-mascota/:id/desactivar
+async function desactivarMiMascota(req, res) {
+  const idMascota = Number(req.params.id);
+
+  if (!Number.isInteger(idMascota)) {
+    return res.status(400).json({
+      message: 'El identificador de la mascota no es válido',
+    });
+  }
+
+  try {
+    const pool = await getPool();
+
+    await pool.request()
+      .input('IdMascota', sql.Int, idMascota)
+      .input('IdCliente', sql.Int, req.usuario.id)
+      .execute('sp_DesactivarMascotaCliente');
+
+    res.json({
+      message: 'Mascota eliminada de tu perfil correctamente',
+      IdMascota: idMascota,
+    });
+  } catch (err) {
+    if (err.message.includes('no existe')) {
+      return res.status(404).json({
+        message: err.message,
+      });
+    }
+
+    if (err.message.includes('permiso')) {
+      return res.status(403).json({
+        message: err.message,
+      });
+    }
+
+    if (err.message.includes('inactiva')) {
+      return res.status(409).json({
+        message: err.message,
+      });
+    }
+
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+}
+
 module.exports = {
   getMascotas,
   getMascotaPorId,
@@ -149,4 +287,6 @@ module.exports = {
   crearMascota,
   actualizarMascota,
   eliminarMascota,
+  actualizarMiMascota,
+  desactivarMiMascota,
 };

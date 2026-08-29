@@ -1,81 +1,96 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import axiosClient from '../../api/axiosClient';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import axiosClient from "../../api/axiosClient";
+
+const FOTOS = [
+  "/imagenes/refugio-perro.jpg",
+  "/imagenes/refugio-gato.webp",
+  "/imagenes/refugio-cafe.jpg",
+];
 
 export default function InicioRefugio() {
   const [animales, setAnimales] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     axiosClient
-      .get('/refugio/disponibles')
+      .get("/refugio/disponibles")
       .then(({ data }) => setAnimales(data))
-      .catch(() => setError('No se pudo cargar el catálogo de animales.'))
+      .catch(() => setError("No se pudo cargar el catálogo de animales."))
       .finally(() => setCargando(false));
   }, []);
 
   return (
-    <div>
-      <section className="hero hero-azul">
-        <div className="hero-texto">
-          <h1>
-            Cada huella cuenta una
-            <br />
-            historia de <u>amor</u>
-          </h1>
+    <main className="refugio-renovado">
+      <section className="refugio-hero">
+        <div className="refugio-hero-texto">
+          <span className="seccion-etiqueta seccion-etiqueta-clara">Refugio Vet-Care</span>
+          <h1>Cada huella cuenta una historia de amor.</h1>
           <p>
-            Nuestro refugio le da un segundo hogar a decenas de animales cada
-            año. Conocé sus historias, adoptá o ayudá con una donación.
+            Rescatamos, cuidamos y conectamos animales con familias dispuestas
+            a brindarles una segunda oportunidad.
           </p>
-          <div className="hero-botones">
-            <Link to="/nosotros" className="btn" style={{ background: 'var(--blanco)', color: 'var(--azul)' }}>
-              Conocer más sobre nosotros
-            </Link>
-            <Link to="/donar" className="btn btn-outline" style={{ borderColor: 'var(--blanco)', color: 'var(--blanco)' }}>
-              Quiero donar
-            </Link>
+          <div className="hero-acciones-renovadas">
+            <Link to="/refugio/catalogo" className="boton-area boton-claro">Conocer animales</Link>
+            <Link to="/donar" className="boton-area boton-transparente">Quiero ayudar</Link>
           </div>
         </div>
-        <div className="hero-imagen" />
+        <div className="refugio-hero-imagen">
+          <img src="/imagenes/refugio-hogar.jpg" alt="Cachorros esperando encontrar un hogar" />
+        </div>
       </section>
 
-      <div className="pagina-publica-ancho">
-        <h2 className="centrado">Mascotas que buscan un hogar</h2>
-        <p className="centrado" style={{ color: 'rgba(19,19,19,0.65)', marginBottom: '1.5rem' }}>
-          Este es un adelanto de nuestro catálogo. Podés ver todos los
-          animales disponibles y postularte para adoptar a alguno.
-        </p>
+      <section className="refugio-catalogo-inicio contenido-renovado">
+        <header className="titulo-seccion-renovado">
+          <span className="seccion-etiqueta">Nuevos amigos</span>
+          <h2>Mascotas que buscan un hogar</h2>
+          <p>Conoce algunos de los animales disponibles actualmente en Vet-Care.</p>
+        </header>
 
         {error && <p className="mensaje-error">{error}</p>}
-
         {cargando ? (
-          <p className="centrado">Cargando animales...</p>
+          <p className="estado-carga-renovado">Cargando animales...</p>
         ) : error ? null : animales.length === 0 ? (
-          <p className="centrado">Por ahora no hay animales disponibles para adopción.</p>
+          <p className="estado-carga-renovado">Por ahora no hay animales disponibles para adopción.</p>
         ) : (
-          <div className="tarjetas-grid">
+          <div className="animales-renovados-grid">
             {animales.slice(0, 3).map((animal) => (
-              <div className="tarjeta" key={animal.IdAnimalRefugio}>
-                <div className="tarjeta-imagen" />
-                <div className="tarjeta-cuerpo">
+              <article className="animal-renovado" key={animal.IdAnimalRefugio}>
+                <img
+                  src={FOTOS[(animal.IdAnimalRefugio - 1) % FOTOS.length]}
+                  alt={"Mascota " + animal.Nombre}
+                />
+                <div>
+                  <span>{animal.Especie}{animal.Edad ? " · " + animal.Edad : ""}</span>
                   <h3>{animal.Nombre}</h3>
-                  <span className="etiqueta">
-                    {animal.Especie}
-                    {animal.Edad ? ` · ${animal.Edad}` : ''}
-                  </span>
+                  {animal.Personalidad && <p>{animal.Personalidad}</p>}
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
 
-        <div className="centrado" style={{ marginTop: '2rem' }}>
-          <Link to="/refugio/catalogo" className="btn btn-azul">
-            Ver catálogo completo
-          </Link>
+        <div className="accion-centrada">
+          <Link to="/refugio/catalogo" className="boton-area boton-refugio">Ver catálogo completo →</Link>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section className="proceso-adopcion">
+        <div className="contenido-renovado">
+          <header className="titulo-seccion-renovado">
+            <span className="seccion-etiqueta">Adopción responsable</span>
+            <h2>¿Cómo adoptar?</h2>
+            <p>Un proceso sencillo para encontrar el compañero ideal.</p>
+          </header>
+          <div className="pasos-adopcion-grid">
+            <article><span>1</span><h3>Elige una mascota</h3><p>Explora el catálogo y conoce su historia.</p></article>
+            <article><span>2</span><h3>Envía tu solicitud</h3><p>Completa el formulario con tus datos.</p></article>
+            <article><span>3</span><h3>Revisión</h3><p>El equipo evaluará la solicitud responsablemente.</p></article>
+            <article><span>4</span><h3>Nuevo hogar</h3><p>Finaliza el proceso y recibe a tu compañero.</p></article>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

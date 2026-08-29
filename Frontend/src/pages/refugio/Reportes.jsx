@@ -19,39 +19,55 @@ export default function Reportes() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    cargarReportes();
-  }, []);
+   useEffect(() => {
+  let componenteActivo = true;
 
-  async function cargarReportes() {
-    setCargando(true);
-    setError('');
-
-    try {
-      const [
+  Promise.all([
+    axiosClient.get('/adopciones/reporte'),
+    axiosClient.get('/donaciones/reporte'),
+    axiosClient.get('/postulaciones/reporte'),
+  ])
+    .then(
+      ([
         respuestaAdopciones,
         respuestaDonaciones,
-        respuestaPostulaciones
-      ] = await Promise.all([
-        axiosClient.get('/adopciones/reporte'),
-        axiosClient.get('/donaciones/reporte'),
-        axiosClient.get('/postulaciones/reporte')
-      ]);
+        respuestaPostulaciones,
+      ]) => {
+        if (!componenteActivo) {
+          return;
+        }
 
-      setReporteAdopciones(respuestaAdopciones.data);
+        setReporteAdopciones(
+          respuestaAdopciones.data
+        );
 
-      setReporteDonaciones(respuestaDonaciones.data);
+        setReporteDonaciones(
+          respuestaDonaciones.data
+        );
 
-      setPostulaciones(respuestaPostulaciones.data);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          'No se pudieron cargar los reportes'
-      );
-    } finally {
-      setCargando(false);
-    }
-  }
+        setPostulaciones(
+          respuestaPostulaciones.data
+        );
+      }
+    )
+    .catch((err) => {
+      if (componenteActivo) {
+        setError(
+          err.response?.data?.message ||
+            'No se pudieron cargar los reportes'
+        );
+      }
+    })
+    .finally(() => {
+      if (componenteActivo) {
+        setCargando(false);
+      }
+    });
+
+  return () => {
+    componenteActivo = false;
+  };
+}, []);
 
   async function filtrarPostulaciones(estado) {
     setEstadoPostulacion(estado);
