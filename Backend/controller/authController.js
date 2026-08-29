@@ -51,6 +51,7 @@ async function login(req, res) {
         rol: emp.NombreRol, // ej. "Veterinario", "Recepcionista"
         correoCampo: 'CorreoElectronico',
         contrasenaCampo: 'Contrasena',
+        debeCambiarContrasena: Boolean(emp.DebeCambiarContrasena),
       });
     }
 
@@ -104,6 +105,7 @@ async function validarYResponder(res, registro, contrasenaIngresada, info) {
       nombre: info.nombre,
       correo: registro[info.correoCampo],
       rol: info.rol,
+      debeCambiarContrasena: Boolean(info.debeCambiarContrasena),
     },
   });
 }

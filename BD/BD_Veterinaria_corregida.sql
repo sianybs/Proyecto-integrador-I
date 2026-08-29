@@ -34,9 +34,11 @@ CREATE TABLE Mascota
     Especie VARCHAR(15) NOT NULL,
     Raza VARCHAR(25),
     EdadAnimal VARCHAR(15),
+    Activo BIT NOT NULL
+        CONSTRAINT DF_Mascota_Activo DEFAULT (1),
     IdCliente INT NOT NULL,
 
-    FOREIGN KEY (IdCliente)
+    CONSTRAINT FK_Mascota_Cliente FOREIGN KEY (IdCliente)
         REFERENCES Cliente(IdCliente)
 );
 GO
@@ -108,6 +110,7 @@ CREATE TABLE AnimalDelRefugio
     Historia VARCHAR(100),
     Personalidad VARCHAR(50),
     HistorialSalud VARCHAR(100),
+    Imagen VARCHAR(255),
     Disponible BIT DEFAULT 1
 );
 GO
@@ -119,6 +122,7 @@ CREATE TABLE SolicitudAdopcion
     CondicionVivienda VARCHAR(75) NOT NULL,
     TieneMascotas BIT NOT NULL,
     MotivoAdopcion VARCHAR(75) NOT NULL,
+    FechaNacimiento DATE NOT NULL,
     Estado VARCHAR(15) NOT NULL
     DEFAULT 'Pendiente'
     CHECK (Estado IN ('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Devuelta')),
@@ -157,7 +161,7 @@ GO
 -- Tabla de Roles
 CREATE TABLE RolEmpleado (
     IdRol INT IDENTITY(1,1) PRIMARY KEY,
-    NombreRol VARCHAR(50) NOT NULL,
+    NombreRol VARCHAR(50) NOT NULL UNIQUE,
     Descripcion VARCHAR(200)
 );
 GO
@@ -1131,7 +1135,7 @@ GO
 CREATE PROCEDURE sp_ConsultarMascotas
 AS
 BEGIN
-    SELECT M.IdMascota,M.Nombre,M.Especie,M.Raza,M.EdadAnimal,
+    SELECT M.IdMascota,M.Nombre,M.Especie,M.Raza,M.EdadAnimal,M.Activo,
            M.IdCliente,C.NombreCompleto AS NombreDueno
     FROM Mascota M INNER JOIN Cliente C ON M.IdCliente=C.IdCliente
     ORDER BY M.IdMascota;
@@ -1152,6 +1156,41 @@ BEGIN
     UPDATE Mascota
     SET Nombre=@Nombre,Especie=@Especie,Raza=@Raza,EdadAnimal=@Edad,IdCliente=@IdCliente
     WHERE IdMascota=@IdMascota;
+END;
+GO
+
+CREATE PROCEDURE sp_DesactivarMascotaCliente
+(
+    @IdMascota INT,
+    @IdCliente INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Mascota WHERE IdMascota=@IdMascota)
+    BEGIN RAISERROR('La mascota no existe.',16,1); RETURN; END;
+
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM Mascota
+        WHERE IdMascota=@IdMascota AND IdCliente=@IdCliente
+    )
+    BEGIN
+        RAISERROR('No tienes permiso para desactivar esta mascota.',16,1);
+        RETURN;
+    END;
+
+    IF EXISTS
+    (
+        SELECT 1 FROM Mascota
+        WHERE IdMascota=@IdMascota AND Activo=0
+    )
+    BEGIN RAISERROR('La mascota ya se encuentra inactiva.',16,1); RETURN; END;
+
+    UPDATE Mascota
+    SET Activo=0
+    WHERE IdMascota=@IdMascota AND IdCliente=@IdCliente;
 END;
 GO
 
@@ -1415,13 +1454,14 @@ GO
 CREATE PROCEDURE sp_CrearAnimalRefugio
 (
     @Nombre VARCHAR(30),@Especie VARCHAR(30),@Edad VARCHAR(25),@Historia VARCHAR(100),
-    @Personalidad VARCHAR(50),@HistorialSalud VARCHAR(100),@Disponible BIT=1
+    @Personalidad VARCHAR(50),@HistorialSalud VARCHAR(100),@Disponible BIT=1,
+    @Imagen VARCHAR(255)=NULL
 )
 AS
 BEGIN
     INSERT INTO AnimalDelRefugio
-        (Nombre,Especie,Edad,Historia,Personalidad,HistorialSalud,Disponible)
-    VALUES (@Nombre,@Especie,@Edad,@Historia,@Personalidad,@HistorialSalud,@Disponible);
+        (Nombre,Especie,Edad,Historia,Personalidad,HistorialSalud,Disponible,Imagen)
+    VALUES (@Nombre,@Especie,@Edad,@Historia,@Personalidad,@HistorialSalud,@Disponible,@Imagen);
 END;
 GO
 
@@ -1436,7 +1476,7 @@ CREATE PROCEDURE sp_ActualizarAnimalRefugio
 (
     @IdAnimalRefugio INT,@Nombre VARCHAR(30),@Especie VARCHAR(30),@Edad VARCHAR(25),
     @Historia VARCHAR(100),@Personalidad VARCHAR(50),@HistorialSalud VARCHAR(100),
-    @Disponible BIT
+    @Disponible BIT,@Imagen VARCHAR(255)=NULL
 )
 AS
 BEGIN
@@ -1444,7 +1484,8 @@ BEGIN
     BEGIN RAISERROR('El animal no existe.',16,1); RETURN; END;
     UPDATE AnimalDelRefugio
     SET Nombre=@Nombre,Especie=@Especie,Edad=@Edad,Historia=@Historia,
-        Personalidad=@Personalidad,HistorialSalud=@HistorialSalud,Disponible=@Disponible
+        Personalidad=@Personalidad,HistorialSalud=@HistorialSalud,Disponible=@Disponible,
+        Imagen=COALESCE(@Imagen,Imagen)
     WHERE IdAnimalRefugio=@IdAnimalRefugio;
 END;
 GO
@@ -1463,18 +1504,28 @@ GO
 -- Crud; Solicitu de Adopcion
 CREATE PROCEDURE sp_CrearSolicitudAdopcion
 (
-    @Condicion VARCHAR(75),@TieneMascotas BIT,@Motivo VARCHAR(75),
+    @Condicion VARCHAR(75),@TieneMascotas BIT,@Motivo VARCHAR(75),@FechaNacimiento DATE,
     @IdCliente INT,@IdAnimal INT
 )
 AS
 BEGIN
+    IF DATEDIFF(YEAR, @FechaNacimiento, GETDATE())
+       - CASE
+           WHEN DATEADD(YEAR, DATEDIFF(YEAR, @FechaNacimiento, GETDATE()), @FechaNacimiento) > CAST(GETDATE() AS DATE)
+           THEN 1 ELSE 0
+         END < 18
+    BEGIN
+        RAISERROR('Debes ser mayor de 18 años para solicitar una adopción.',16,1);
+        RETURN;
+    END;
+
     IF NOT EXISTS (SELECT 1 FROM Cliente WHERE IdCliente=@IdCliente)
     BEGIN RAISERROR('El cliente no existe.',16,1); RETURN; END;
     IF NOT EXISTS (SELECT 1 FROM AnimalDelRefugio WHERE IdAnimalRefugio=@IdAnimal)
     BEGIN RAISERROR('El animal no existe.',16,1); RETURN; END;
     INSERT INTO SolicitudAdopcion
-        (CondicionVivienda,TieneMascotas,MotivoAdopcion,IdCliente,IdAnimalRefugio)
-    VALUES (@Condicion,@TieneMascotas,@Motivo,@IdCliente,@IdAnimal);
+        (CondicionVivienda,TieneMascotas,MotivoAdopcion,FechaNacimiento,IdCliente,IdAnimalRefugio)
+    VALUES (@Condicion,@TieneMascotas,@Motivo,@FechaNacimiento,@IdCliente,@IdAnimal);
 END;
 GO
 
@@ -1725,6 +1776,12 @@ CREATE PROCEDURE sp_CrearRolEmpleado
 (@NombreRol VARCHAR(50),@Descripcion VARCHAR(200))
 AS
 BEGIN
+    IF EXISTS (SELECT 1 FROM RolEmpleado WHERE NombreRol = @NombreRol)
+    BEGIN
+        RAISERROR('Ya existe un rol con ese nombre.',16,1);
+        RETURN;
+    END;
+
     INSERT INTO RolEmpleado (NombreRol,Descripcion)
     VALUES (@NombreRol,@Descripcion);
 END;
@@ -1858,7 +1915,8 @@ SELECT
     Edad,
     Historia,
     Personalidad,
-    HistorialSalud
+    HistorialSalud,
+    Imagen
 FROM AnimalDelRefugio
 WHERE Disponible = 1;
 GO

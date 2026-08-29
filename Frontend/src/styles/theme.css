@@ -1,0 +1,126 @@
+/* =========================================================
+   IDENTIDAD VISUAL GENERAL DE VET-CARE
+   ========================================================= */
+
+:root {
+  /* Áreas principales */
+  --color-veterinaria: #f32828;
+  --color-veterinaria-oscuro: #c71919;
+  --color-veterinaria-suave: #fff0f0;
+
+  --color-refugio: #40ba69;
+  --color-refugio-oscuro: #278a49;
+  --color-refugio-suave: #effbf3;
+
+  /* Colores generales */
+  --color-fondo: #f6f8fb;
+  --color-superficie: #ffffff;
+  --color-texto: #20242a;
+  --color-texto-secundario: #667085;
+  --color-borde: #e4e7ec;
+
+  /* Estados */
+  --color-error: #d92d20;
+  --color-error-suave: #fff1f0;
+  --color-advertencia: #b87503;
+  --color-advertencia-suave: #fff8e7;
+  --color-exito: #278a49;
+  --color-exito-suave: #ecfdf3;
+
+  /* Sombras */
+  --sombra-suave: 0 4px 18px rgba(16, 24, 40, 0.06);
+  --sombra-media: 0 12px 32px rgba(16, 24, 40, 0.1);
+
+  /* Bordes redondeados */
+  --radio-pequeno: 10px;
+  --radio-medio: 16px;
+  --radio-grande: 24px;
+  --radio-redondo: 999px;
+
+  /* Transiciones */
+  --transicion: 180ms ease;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(243, 40, 40, 0.035),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(64, 186, 105, 0.045),
+      transparent 30rem
+    ),
+    var(--color-fondo);
+
+  color: var(--color-texto);
+  font-family:
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  transition:
+    background-color var(--transicion),
+    border-color var(--transicion),
+    color var(--transicion),
+    transform var(--transicion),
+    box-shadow var(--transicion);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(243, 40, 40, 0.2);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(243, 40, 40, 0.18);
+  color: var(--color-texto);
+}
+
+/* Identidad para páginas relacionadas con Veterinaria */
+.tema-veterinaria {
+  --color-area: var(--color-veterinaria);
+  --color-area-oscuro: var(--color-veterinaria-oscuro);
+  --color-area-suave: var(--color-veterinaria-suave);
+}
+
+/* Identidad para páginas relacionadas con Refugio */
+.tema-refugio {
+  --color-area: var(--color-refugio);
+  --color-area-oscuro: var(--color-refugio-oscuro);
+  --color-area-suave: var(--color-refugio-suave);
+}
+
+/* Identidad para páginas que combinan las dos áreas */
+.tema-general {
+  --color-area: var(--color-veterinaria);
+  --color-area-oscuro: var(--color-veterinaria-oscuro);
+  --color-area-suave: var(--color-veterinaria-suave);
+}

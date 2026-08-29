@@ -7,11 +7,19 @@ import { useAuth } from '../context/AuthContext';
 //
 //   <RutaProtegida rolesPermitidos={['Administrador']}><PaginaEmpleados /></RutaProtegida>
 //   -> exige estar logueado Y tener uno de esos roles
-export default function RutaProtegida({ children, rolesPermitidos }) {
+export default function RutaProtegida({
+  children,
+  rolesPermitidos,
+  permitirCambioTemporal = false,
+}) {
   const { usuario, estaLogueado } = useAuth();
 
   if (!estaLogueado) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (usuario.debeCambiarContrasena && !permitirCambioTemporal) {
+    return <Navigate to="/cambiar-contrasena-temporal" replace />;
   }
 
   if (rolesPermitidos && !rolesPermitidos.includes(usuario.rol)) {

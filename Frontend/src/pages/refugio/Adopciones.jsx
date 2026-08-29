@@ -212,21 +212,6 @@ export default function Adopciones() {
                     </>
                   )}
 
-                  {solicitud.Estado === 'Aprobada' && (
-                    <button
-                      className="btn-secundario"
-                      onClick={() =>
-                        cambiarEstado(
-                          solicitud.IdSolicitud,
-                          'devolver',
-                          '¿Confirmás que el animal fue devuelto al refugio?'
-                        )
-                      }
-                    >
-                      Devolver
-                    </button>
-                  )}
-
                   <button
                     className="btn-peligro"
                     onClick={() =>

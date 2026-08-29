@@ -19,6 +19,8 @@ export default function Animales() {
   const [form, setForm] = useState(FORM_VACIO);
   const [idEditando, setIdEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [foto, setFoto] = useState(null);
+  const [vistaPrevia, setVistaPrevia] = useState('');
 
   const [busqueda, setBusqueda] = useState('');
 
@@ -64,6 +66,8 @@ export default function Animales() {
       HistorialSalud: animal.HistorialSalud || '',
       Disponible: Boolean(animal.Disponible),
     });
+    setFoto(null);
+    setVistaPrevia(animal.Imagen ? `http://localhost:4000${animal.Imagen}` : '');
 
     window.scrollTo({
       top: 0,
@@ -74,6 +78,15 @@ export default function Animales() {
   function cancelarEdicion() {
     setIdEditando(null);
     setForm(FORM_VACIO);
+    setFoto(null);
+    setVistaPrevia('');
+  }
+
+  function manejarFoto(e) {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    setFoto(archivo);
+    setVistaPrevia(URL.createObjectURL(archivo));
   }
 
   async function manejarSubmit(e) {
@@ -83,10 +96,9 @@ export default function Animales() {
     setGuardando(true);
 
     try {
-      const payload = {
-        ...form,
-        Disponible: form.Disponible,
-      };
+      const payload = new FormData();
+      Object.entries(form).forEach(([campo, valor]) => payload.append(campo, valor));
+      if (foto) payload.append('Foto', foto);
 
       if (idEditando) {
         await axiosClient.put(
@@ -102,6 +114,8 @@ export default function Animales() {
 
       setForm(FORM_VACIO);
       setIdEditando(null);
+      setFoto(null);
+      setVistaPrevia('');
 
       await cargarAnimales();
     } catch (err) {
@@ -270,6 +284,24 @@ export default function Animales() {
             />
           </label>
 
+          <label className="animal-foto-campo">
+            Foto de la mascota
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={manejarFoto}
+              required={!idEditando && !vistaPrevia}
+            />
+            <small>JPG, PNG o WebP. Máximo 5 MB.</small>
+          </label>
+
+          {vistaPrevia && (
+            <div className="animal-foto-vista-previa">
+              <span>Vista previa</span>
+              <img src={vistaPrevia} alt="Vista previa de la mascota" />
+            </div>
+          )}
+
         </div>
 
         <div className="crud-form-botones">
@@ -336,6 +368,7 @@ export default function Animales() {
 
           <thead>
             <tr>
+              <th>Foto</th>
               <th>Nombre</th>
               <th>Especie</th>
               <th>Edad</th>
@@ -350,6 +383,16 @@ export default function Animales() {
             {animalesFiltrados.map((animal) => (
 
               <tr key={animal.IdAnimalRefugio}>
+
+                <td>
+                  {animal.Imagen ? (
+                    <img
+                      className="animal-tabla-foto"
+                      src={`http://localhost:4000${animal.Imagen}`}
+                      alt={animal.Nombre}
+                    />
+                  ) : 'Sin foto'}
+                </td>
 
                 <td>
                   {animal.Nombre}
